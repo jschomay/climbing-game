@@ -1,0 +1,11 @@
+body {
+  background: black;
+}
+
+#game {
+  background: brown;
+  margin: auto;
+  position: absolute;
+  left: 0;
+  right: 0;
+}
