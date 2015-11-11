@@ -9,6 +9,10 @@ function shuffle(o){
   return o;
 }
 
+function randomBetween(min,max) {
+  return Math.floor(Math.random()*(max-min+1)+min);
+}
+
 var letters = [ 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
 
 var shuffledHandHoldNames = shuffle(letters);
@@ -41,17 +45,21 @@ function buildWall() {
   var x;
   var y = 30;
   var i = 0;
+  var xOffset;
+  var yOffset;
   while (y < canvas.height) {
     x = 30;
     while (x < canvas.width) {
-      addHandHold(shuffledHandHoldNames[i], x, y);
-      x += 60;
+      xOffset = randomBetween(-20, 20);
+      yOffset = randomBetween(-40, 40);
+      addHandHold(shuffledHandHoldNames[i], x + xOffset, y + yOffset);
+      x += 80;
       i += 1;
       if (i >= shuffledHandHoldNames.length) {
         i = 0;
       }
     }
-    y += 120;
+    y += 150;
   }
 }
 
@@ -59,7 +67,8 @@ function drawHand(hand) {
   if (hand.grip) {
     // ctx.beginPath();
     ctx.lineWidth = 3;
-    ctx.arc(hand.x,hand.y,30,0,Math.PI*2,true);
+    ctx.arc(hand.x + 10, hand.y - 10, 30, Math.PI * 0.5, Math.PI * -1.5, true);
+    ctx.arc(hand.x + 10, hand.y - 10, 30, Math.PI * 0.5, Math.PI * -0.5, true);
     ctx.stroke();
     // ctx.closePath();
   }
@@ -79,8 +88,8 @@ function chooseHandHold(e) {
   function isValidHandHold(acc, handHold) {
     if (acc) { return acc; }
     if (handHold.name === chosenHandHoldLetter &&
-        handHold.y <= hand.y &&
-        dist(handHold, hand) < 150) {
+        handHold.y <= hand.y + 30 &&
+        dist(handHold, hand) < 180) {
       acc = handHold;
     }
     return acc;
@@ -104,3 +113,13 @@ function main() {
 
 
 main();
+
+
+/*
+ todo
+ - randomize size and rotation of letters
+
+ - add second hand (needs game loop and game over condition)
+ 
+
+ */
