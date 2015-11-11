@@ -11,40 +11,47 @@ function shuffle(o){
 
 var letters = [ 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
 
-var shuffledGripNames = shuffle(letters);
+var shuffledHandHoldNames = shuffle(letters);
 
 
 function bindKeys(){
-  document.addEventListener('keydown', chooseGrip);
-  document.addEventListener('keyup', releaseGrip);
+  document.addEventListener('keydown', chooseHandHold);
+  document.addEventListener('keyup', releaseHandHold);
 }
 
-function addGrip(name, x, y) {
+function dist(a, b) {
+  var x = Math.abs(a.x - b.x);
+  var y = Math.abs(a.y - b.y);
+  return Math.sqrt(x*x + y*y);
+}
+
+function addHandHold(name, x, y) {
   wall.push({name: name, x: x, y:y});
-  drawGrip(name, x, y);
+  drawHandHold(name, x, y);
 }
 
-function drawGrip(name, x, y) {
-  ctx.font = "24px black";
+function drawHandHold(name, x, y) {
+  ctx.fillStyle = "#ccc";
+  ctx.font = "bold 28px arial";
   ctx.fillText(name.toUpperCase(), x, y);
 }
 
 
 function buildWall() {
-  var x = 70;
+  var x;
   var y = 30;
   var i = 0;
   while (y < canvas.height) {
-    x = 70;
+    x = 30;
     while (x < canvas.width) {
-      addGrip(shuffledGripNames[i], x, y);
-      x += 100;
+      addHandHold(shuffledHandHoldNames[i], x, y);
+      x += 60;
       i += 1;
-      if (i >= shuffledGripNames.length) {
+      if (i >= shuffledHandHoldNames.length) {
         i = 0;
       }
     }
-    y += 200;
+    y += 120;
   }
 }
 
@@ -59,29 +66,34 @@ function drawHand(hand) {
 }
 
 
-function grab(hand, grip) {
+function grab(hand, handHold) {
   hand.grip = 1;
-  hand.x = grip.x;
-  hand.y = grip.y;
+  hand.x = handHold.x;
+  hand.y = handHold.y;
   drawHand(hand);
 }
 
-function release(hand) {
-  hand.grip = 0;
-  drawHand(hand);
-}
+function chooseHandHold(e) {
+  var chosenHandHoldLetter = String.fromCharCode(e.keyCode).toLowerCase();
 
-function chooseGrip(e) {
-  var chosenGripLetter = String.fromCharCode(e.keyCode).toLowerCase();
+  function isValidHandHold(acc, handHold) {
+    if (acc) { return acc; }
+    if (handHold.name === chosenHandHoldLetter &&
+        handHold.y <= hand.y &&
+        dist(handHold, hand) < 150) {
+      acc = handHold;
+    }
+    return acc;
+  }
 
-  var gripIndex = wall.map(function(w) { return w.name; }).indexOf(chosenGripLetter);
-  if ( gripIndex !== -1 ) {
-    grab(hand, wall[gripIndex]);
+  var handHold = wall.reduce(isValidHandHold, null);
+  if (handHold) {
+    grab(hand, handHold);
   }
 }
 
-function releaseGrip(e) {
-  release(hand);
+function releaseHandHold(e) {
+  hand.grip = 0;
 }
 
 function main() {

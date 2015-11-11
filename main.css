@@ -3,7 +3,8 @@ body {
 }
 
 #game {
-  background: brown;
+  background: url('rocks.jpg');
+  background-size: contain;
   margin: auto;
   position: absolute;
   left: 0;
