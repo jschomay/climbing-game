@@ -2,7 +2,7 @@ var canvas = document.getElementById('game');
 var ctx = canvas.getContext('2d');
 
 var wall = [];
-var hand = {};
+var hands = [{side: 'left'}, {side: 'right'}];
 
 function shuffle(o){
   for(var j, x, i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
@@ -43,15 +43,15 @@ function drawHandHold(name, x, y) {
 
 function buildWall() {
   var x;
-  var y = 30;
+  var y = 80;
   var i = 0;
   var xOffset;
   var yOffset;
-  while (y < canvas.height) {
+  while (y < canvas.height - 20) {
     x = 30;
     while (x < canvas.width) {
       xOffset = randomBetween(-20, 20);
-      yOffset = randomBetween(-40, 40);
+      yOffset = randomBetween(-50, 50);
       addHandHold(shuffledHandHoldNames[i], x + xOffset, y + yOffset);
       x += 80;
       i += 1;
@@ -59,37 +59,46 @@ function buildWall() {
         i = 0;
       }
     }
-    y += 150;
+    y += 170;
   }
 }
 
 function drawHand(hand) {
   if (hand.grip) {
-    // ctx.beginPath();
+    ctx.beginPath();
     ctx.lineWidth = 3;
+    ctx.strokeStyle = hand.side == "right" ? "red" : "blue";
     ctx.arc(hand.x + 10, hand.y - 10, 30, Math.PI * 0.5, Math.PI * -1.5, true);
     ctx.arc(hand.x + 10, hand.y - 10, 30, Math.PI * 0.5, Math.PI * -0.5, true);
     ctx.stroke();
-    // ctx.closePath();
+    ctx.closePath();
   }
 }
 
 
 function grab(hand, handHold) {
   hand.grip = 1;
+  hand.handHoldName = handHold.name;
   hand.x = handHold.x;
   hand.y = handHold.y;
   drawHand(hand);
 }
 
 function chooseHandHold(e) {
+  // only proceed if the matching grip has been released
+  if (hands.filter(function(hand) { return hand.grip && hand.handHoldName === String.fromCharCode(e.keyCode).toLowerCase(); }).length) { return; }
+
   var chosenHandHoldLetter = String.fromCharCode(e.keyCode).toLowerCase();
+  var freeHand = hands.filter(function(hand) { return !hand.grip; })[0];
+  if (!freeHand) { return; }
+  var otherHand = hands.filter(function(hand) { return hand.grip; })[0];
 
   function isValidHandHold(acc, handHold) {
     if (acc) { return acc; }
     if (handHold.name === chosenHandHoldLetter &&
-        handHold.y <= hand.y + 30 &&
-        dist(handHold, hand) < 180) {
+        handHold.y <= freeHand.y + 30 &&
+        dist(handHold, freeHand) < 180 &&
+        dist(handHold, otherHand) < 220) {
       acc = handHold;
     }
     return acc;
@@ -97,17 +106,22 @@ function chooseHandHold(e) {
 
   var handHold = wall.reduce(isValidHandHold, null);
   if (handHold) {
-    grab(hand, handHold);
+    grab(freeHand, handHold);
   }
 }
 
 function releaseHandHold(e) {
-  hand.grip = 0;
+  hands.map(function(hand) {
+    if(hand.handHoldName && hand.handHoldName.toLowerCase() === String.fromCharCode(e.keyCode).toLowerCase()) {
+      hand.grip = 0;
+    }
+  });
 }
 
 function main() {
   buildWall();
-  grab(hand, wall[wall.length - 3]);
+  grab(hands[0], wall[wall.length - 3]);
+  grab(hands[1], wall[wall.length - 4]);
   bindKeys();
 }
 
@@ -117,9 +131,6 @@ main();
 
 /*
  todo
- - randomize size and rotation of letters
-
- - add second hand (needs game loop and game over condition)
  
 
  */
