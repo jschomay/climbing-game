@@ -64,12 +64,16 @@ function buildWall() {
 }
 
 function drawHand(hand) {
-  if (hand.grip) {
-    ctx.beginPath();
+  if (hand.grip && hand.x !== hand.prevX && hand.y !== hand.prevY) {
     ctx.lineWidth = 3;
     ctx.strokeStyle = hand.side == "right" ? "red" : "blue";
+
+    ctx.beginPath();
+    ctx.moveTo(hand.prevX + 10, hand.prevY - 30 - 10);
+
     ctx.arc(hand.x + 10, hand.y - 10, 30, Math.PI * 0.5, Math.PI * -1.5, true);
     ctx.arc(hand.x + 10, hand.y - 10, 30, Math.PI * 0.5, Math.PI * -0.5, true);
+
     ctx.stroke();
     ctx.closePath();
   }
@@ -79,6 +83,8 @@ function drawHand(hand) {
 function grab(hand, handHold) {
   hand.grip = 1;
   hand.handHoldName = handHold.name;
+  hand.prevX = hand.x;
+  hand.prevY = hand.y;
   hand.x = handHold.x;
   hand.y = handHold.y;
   drawHand(hand);
@@ -154,5 +160,8 @@ main();
 /*
  todo
  
+ - lose grip
+ - add feet?
+ - add vetical scroll?
 
  */
