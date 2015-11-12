@@ -98,7 +98,7 @@ function chooseHandHold(e) {
     if (handHold.name === chosenHandHoldLetter &&
         handHold.y <= freeHand.y + 30 &&
         dist(handHold, freeHand) < 180 &&
-        dist(handHold, otherHand) < 220) {
+        dist(handHold, otherHand) < 250) {
       acc = handHold;
     }
     return acc;
@@ -107,6 +107,7 @@ function chooseHandHold(e) {
   var handHold = wall.reduce(isValidHandHold, null);
   if (handHold) {
     grab(freeHand, handHold);
+    checkGameWin();
   }
 }
 
@@ -116,6 +117,27 @@ function releaseHandHold(e) {
       hand.grip = 0;
     }
   });
+  checkGameOver();
+}
+
+function checkGameOver() {
+  if (hands.filter(function(hand) { return !hand.grip; }).length == 2) {
+    ctx.fillStyle = "#000";
+    ctx.font = "bold 72px arial";
+    ctx.fillText("Game Over!", 20, 300);
+    document.removeEventListener('keydown', chooseHandHold);
+    document.removeEventListener('keyup', releaseHandHold);
+  }
+}
+
+function checkGameWin() {
+  if (hands.filter(function(hand) { return hand.y < 100; }).length == 2) {
+    ctx.fillStyle = "#000";
+    ctx.font = "bold 72px arial";
+    ctx.fillText("You Win!", 50, 300);
+    document.removeEventListener('keydown', chooseHandHold);
+    document.removeEventListener('keyup', releaseHandHold);
+  }
 }
 
 function main() {
