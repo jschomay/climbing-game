@@ -2,7 +2,7 @@ var canvas = document.getElementById('game');
 var ctx = canvas.getContext('2d');
 
 var wall = [];
-var hands = [{side: 'left'}, {side: 'right'}];
+var hands = [{side: 'right'}, {side: 'left'}];
 
 function shuffle(o){
   for(var j, x, i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
@@ -67,12 +67,13 @@ function drawHand(hand) {
   if (hand.grip && hand.x !== hand.prevX && hand.y !== hand.prevY) {
     ctx.lineWidth = 3;
     ctx.strokeStyle = hand.side == "right" ? "red" : "blue";
+    var handBias = hand.side == "right" ? 3 : -3;
 
     ctx.beginPath();
-    ctx.moveTo(hand.prevX + 10, hand.prevY - 30 - 10);
+    ctx.moveTo(hand.prevX + 10 + handBias, hand.prevY - 30 - 10);
 
-    ctx.arc(hand.x + 10, hand.y - 10, 30, Math.PI * 0.5, Math.PI * -1.5, true);
-    ctx.arc(hand.x + 10, hand.y - 10, 30, Math.PI * 0.5, Math.PI * -0.5, true);
+    ctx.arc(hand.x + 10 + handBias, hand.y - 10, 30, Math.PI * 0.5, Math.PI * -1.5, true);
+    ctx.arc(hand.x + 10 + handBias, hand.y - 10, 30, Math.PI * 0.5, Math.PI * -0.5, true);
 
     ctx.stroke();
     ctx.closePath();
