@@ -3,6 +3,11 @@ var ctx = canvas.getContext('2d');
 
 var wall = [];
 var hands = [{side: 'right'}, {side: 'left'}];
+var keysDown = {};
+var justPressed = null;
+var justReleased = null;
+var time = 0;
+var pause = false;
 
 function shuffle(o){
   for(var j, x, i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
@@ -17,10 +22,22 @@ var letters = [ 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
 
 var shuffledHandHoldNames = shuffle(letters);
 
+function handleKeyDown(e) {
+  var letter = String.fromCharCode(e.keyCode).toLowerCase();
+  if(!keysDown[letter]) {
+    keysDown[letter] = true;
+    justPressed = letter;
+  }
+}
 
+function handleKeyUp(e) {
+  var letter = String.fromCharCode(e.keyCode).toLowerCase();
+  keysDown[letter] = false;
+  justReleased = letter;
+}
 function bindKeys(){
-  document.addEventListener('keydown', chooseHandHold);
-  document.addEventListener('keyup', releaseHandHold);
+  document.addEventListener('keydown', handleKeyDown);
+  document.addEventListener('keyup', handleKeyUp);
 }
 
 function dist(a, b) {
@@ -91,11 +108,10 @@ function grab(hand, handHold) {
   drawHand(hand);
 }
 
-function chooseHandHold(e) {
+function chooseHandHold(chosenHandHoldLetter) {
   // only proceed if the matching grip has been released
-  if (hands.filter(function(hand) { return hand.grip && hand.handHoldName === String.fromCharCode(e.keyCode).toLowerCase(); }).length) { return; }
+  if (hands.filter(function(hand) { return hand.grip && hand.handHoldName === chosenHandHoldLetter; }).length) { return; }
 
-  var chosenHandHoldLetter = String.fromCharCode(e.keyCode).toLowerCase();
   var freeHand = hands.filter(function(hand) { return !hand.grip; })[0];
   if (!freeHand) { return; }
   var otherHand = hands.filter(function(hand) { return hand.grip; })[0];
@@ -118,9 +134,9 @@ function chooseHandHold(e) {
   }
 }
 
-function releaseHandHold(e) {
+function releaseHandHold(releasedLetter) {
   hands.map(function(hand) {
-    if(hand.handHoldName && hand.handHoldName.toLowerCase() === String.fromCharCode(e.keyCode).toLowerCase()) {
+    if(hand.handHoldName && hand.handHoldName.toLowerCase() === releasedLetter) {
       hand.grip = 0;
     }
   });
@@ -129,40 +145,114 @@ function releaseHandHold(e) {
 
 function checkGameOver() {
   if (hands.filter(function(hand) { return !hand.grip; }).length == 2) {
+    pause = true;
     ctx.fillStyle = "#000";
     ctx.font = "bold 72px arial";
     ctx.fillText("Game Over!", 20, 300);
-    document.removeEventListener('keydown', chooseHandHold);
-    document.removeEventListener('keyup', releaseHandHold);
+    document.removeEventListener('keydown', handleKeyDown);
+    document.removeEventListener('keyup', handleKeyUp);
   }
 }
 
 function checkGameWin() {
   if (hands.filter(function(hand) { return hand.y < 100; }).length == 2) {
+    pause = true;
     ctx.fillStyle = "#000";
     ctx.font = "bold 72px arial";
     ctx.fillText("You Win!", 50, 300);
-    document.removeEventListener('keydown', chooseHandHold);
-    document.removeEventListener('keyup', releaseHandHold);
+    document.removeEventListener('keydown', handleKeyDown);
+    document.removeEventListener('keyup', handleKeyUp);
   }
 }
 
-function main() {
+function updateWorld(dt) {
+  time = Math.round(dt/1000);
+
+  if(justPressed) {
+    chooseHandHold(justPressed);
+    justPressed = null;
+  }
+  if(justReleased) {
+    releaseHandHold(justReleased);
+    justReleased = null;
+  }
+}
+
+function drawTime() {
+  ctx.save();
+  ctx.fillStyle = "#000";
+  ctx.font = "18px arial";
+  ctx.clearRect(0,0,100,15);
+  ctx.fillText(time, 10, 15);
+  ctx.restore();
+}
+
+function drawWorld() {
+  drawTime();
+
+  // other drawing happens in update functions currently
+}
+
+function loop(dt) {
+  updateWorld(dt);
+  drawWorld();
+  if (!pause) {
+    requestAnimationFrame(loop);
+  }
+}
+
+function init() {
   buildWall();
   grab(hands[0], wall[wall.length - 3]);
   grab(hands[1], wall[wall.length - 4]);
   bindKeys();
+
+  loop(0);
 }
 
 
-main();
+init();
 
 
 /*
- todo
+todo
  
- - lose grip
- - add feet?
- - add vetical scroll?
+- add finish line?
 
+- limited time grips
+  - use game loop
+
+- add vetical/horizontal scroll
+  - generate larger wall
+  - transfrorm canvas based on climb height
+
+- dust/falling rocks on grip
+  - particle generator
+
+- map editor
+  - switch modes/ second page
+  - click to place a handhold
+  - set size and scale to fit
+  - save as level
+
+- add score?
+  - what to award? (vertical reach, speed, l/r/l/r, golf style score, grips with difficulty settings)
+
+- add character
+  - human or robot-like?  With legs?
+  - http://jsdo.it/j_s/SO6b for IK
+  - (auto-animate legs?)
+
+- 2 player race to the top
+  - on same keyboard?
+  - networked
+    - using websockets and server
+    - "rooms"
+    - could fit 3 or 4 climbers
+
+- Start menu with title
+
+
+Notes:
+- Reach can equal arm length plus unextended reach of highest leg
  */
