@@ -1,13 +1,14 @@
 var canvas = document.getElementById('game');
 var ctx = canvas.getContext('2d');
+var lastTick, dt;
+var pause = false;
 
 var wall = [];
 var hands = [{side: 'right'}, {side: 'left'}];
 var keysDown = {};
 var justPressed = null;
 var justReleased = null;
-var time = 0;
-var pause = false;
+var runningTime = 0;
 
 function shuffle(o){
   for(var j, x, i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
@@ -90,7 +91,15 @@ function drawHand(hand) {
     ctx.moveTo(hand.prevX + 10 + handBias, hand.prevY - 30 - 10);
 
     ctx.arc(hand.x + 10 + handBias, hand.y - 10, 30, Math.PI * 0.5, Math.PI * -1.5, true);
-    ctx.arc(hand.x + 10 + handBias, hand.y - 10, 30, Math.PI * 0.5, Math.PI * -0.5, true);
+    ctx.stroke();
+    ctx.closePath();
+
+    // grip strength indicator
+    ctx.lineWidth = 9;
+    ctx.strokeStyle = "black";
+
+    ctx.beginPath();
+    ctx.arc(hand.x + 10 + handBias, hand.y - 10, 30, Math.PI * 0, Math.PI * 2 * hand.grip, true);
 
     ctx.stroke();
     ctx.closePath();
@@ -105,7 +114,6 @@ function grab(hand, handHold) {
   hand.prevY = hand.y;
   hand.x = handHold.x;
   hand.y = handHold.y;
-  drawHand(hand);
 }
 
 function chooseHandHold(chosenHandHoldLetter) {
@@ -114,7 +122,7 @@ function chooseHandHold(chosenHandHoldLetter) {
 
   var freeHand = hands.filter(function(hand) { return !hand.grip; })[0];
   if (!freeHand) { return; }
-  var otherHand = hands.filter(function(hand) { return hand.grip; })[0];
+  var otherHand = hands.filter(function(hand) { return hand !== freeHand; })[0];
 
   function isValidHandHold(acc, handHold) {
     if (acc) { return acc; }
@@ -130,7 +138,6 @@ function chooseHandHold(chosenHandHoldLetter) {
   var handHold = wall.reduce(isValidHandHold, null);
   if (handHold) {
     grab(freeHand, handHold);
-    checkGameWin();
   }
 }
 
@@ -140,7 +147,6 @@ function releaseHandHold(releasedLetter) {
       hand.grip = 0;
     }
   });
-  checkGameOver();
 }
 
 function checkGameOver() {
@@ -165,8 +171,27 @@ function checkGameWin() {
   }
 }
 
+function updateGrips(dt) {
+  hands.forEach(function(hand) {
+    if(hand.grip > 0 && hand.prevX) {
+      hand.grip = Math.max(0, Math.round((hand.grip - dt * 1 / 5000) * 10000) / 10000);
+    }
+  });
+}
+
+function drawTime() {
+  ctx.save();
+  ctx.fillStyle = "#000";
+  ctx.font = "18px arial";
+  ctx.clearRect(0,0,100,15);
+  ctx.fillText(runningTime, 10, 15);
+  ctx.restore();
+}
+
 function updateWorld(dt) {
-  time = Math.round(dt/1000);
+  runningTime = Math.round(lastTick / 1000);
+  checkGameWin();
+  checkGameOver();
 
   if(justPressed) {
     chooseHandHold(justPressed);
@@ -176,24 +201,19 @@ function updateWorld(dt) {
     releaseHandHold(justReleased);
     justReleased = null;
   }
-}
 
-function drawTime() {
-  ctx.save();
-  ctx.fillStyle = "#000";
-  ctx.font = "18px arial";
-  ctx.clearRect(0,0,100,15);
-  ctx.fillText(time, 10, 15);
-  ctx.restore();
+  updateGrips(dt);
 }
 
 function drawWorld() {
   drawTime();
-
-  // other drawing happens in update functions currently
+  hands.forEach(drawHand);
 }
 
-function loop(dt) {
+function loop(time) {
+  dt = time - lastTick || time;
+  lastTick = time;
+     
   updateWorld(dt);
   drawWorld();
   if (!pause) {
@@ -221,13 +241,14 @@ todo
 
 - limited time grips
   - use game loop
+  - arm drops
+  - dust/falling rocks
+    - particle generator
+
 
 - add vetical/horizontal scroll
   - generate larger wall
   - transfrorm canvas based on climb height
-
-- dust/falling rocks on grip
-  - particle generator
 
 - map editor
   - switch modes/ second page
@@ -249,6 +270,7 @@ todo
     - using websockets and server
     - "rooms"
     - could fit 3 or 4 climbers
+  - swipe at the other player to knock one of their hands free
 
 - Start menu with title
 
