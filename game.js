@@ -9,6 +9,8 @@ var keysDown = {};
 var justPressed = null;
 var justReleased = null;
 var runningTime = 0;
+var gameOver = false;
+var gameWin = false;
 
 function shuffle(o){
   for(var j, x, i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
@@ -17,6 +19,10 @@ function shuffle(o){
 
 function randomBetween(min,max) {
   return Math.floor(Math.random()*(max-min+1)+min);
+}
+
+function degToRad(d) {
+  return (Math.PI/180) * d;
 }
 
 var letters = [ 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
@@ -49,13 +55,19 @@ function dist(a, b) {
 
 function addHandHold(name, x, y) {
   wall.push({name: name, x: x, y:y});
-  drawHandHold(name, x, y);
 }
 
-function drawHandHold(name, x, y) {
+function drawWall() {
+  wall.forEach(drawHandHold);
+}
+
+function drawHandHold(handHold) {
+  ctx.save();
+  ctx.globalAlpha = 0.8;
   ctx.fillStyle = "#ccc";
   ctx.font = "bold 28px arial";
-  ctx.fillText(name.toUpperCase(), x, y);
+  ctx.fillText(handHold.name.toUpperCase(), handHold.x, handHold.y);
+  ctx.restore();
 }
 
 
@@ -82,28 +94,28 @@ function buildWall() {
 }
 
 function drawHand(hand) {
-  if (hand.grip && hand.x !== hand.prevX && hand.y !== hand.prevY) {
+  ctx.save();
+  var r = 35;
+  ctx.strokeStyle = hand.side == "right" ? "red" : "blue";
+
+  if (hand.grip) {
+    // active hold
     ctx.lineWidth = 3;
-    ctx.strokeStyle = hand.side == "right" ? "red" : "blue";
-    var handBias = hand.side == "right" ? 3 : -3;
-
     ctx.beginPath();
-    ctx.moveTo(hand.prevX + 10 + handBias, hand.prevY - 30 - 10);
-
-    ctx.arc(hand.x + 10 + handBias, hand.y - 10, 30, Math.PI * 0.5, Math.PI * -1.5, true);
+    ctx.arc(hand.x + 10, hand.y - 10, r, Math.PI * 0.5, Math.PI * -1.5, true);
     ctx.stroke();
     ctx.closePath();
 
-    // grip strength indicator
-    ctx.lineWidth = 9;
-    ctx.strokeStyle = "black";
-
+    // grip strength
     ctx.beginPath();
-    ctx.arc(hand.x + 10 + handBias, hand.y - 10, 30, Math.PI * 0, Math.PI * 2 * hand.grip, true);
-
-    ctx.stroke();
+    ctx.globalAlpha = 0.4;
+    ctx.fillStyle = ctx.strokeStyle;
+    ctx.moveTo(hand.x + 10, hand.y - 10);
+    ctx.arc(hand.x + 10, hand.y - 10, r, degToRad(0 - 90), degToRad(-360 * hand.grip - 90),  true);
+    ctx.fill();
     ctx.closePath();
   }
+  ctx.restore();
 }
 
 
@@ -152,29 +164,37 @@ function releaseHandHold(releasedLetter) {
 function checkGameOver() {
   if (hands.filter(function(hand) { return !hand.grip; }).length == 2) {
     pause = true;
-    ctx.fillStyle = "#000";
-    ctx.font = "bold 72px arial";
-    ctx.fillText("Game Over!", 20, 300);
+    gameOver = true;
     document.removeEventListener('keydown', handleKeyDown);
     document.removeEventListener('keyup', handleKeyUp);
   }
+}
+function drawGameOver() {
+  ctx.fillStyle = "#000";
+  ctx.font = "bold 72px arial";
+  ctx.fillText("Game Over!", 20, 300);
 }
 
 function checkGameWin() {
   if (hands.filter(function(hand) { return hand.y < 100; }).length == 2) {
     pause = true;
-    ctx.fillStyle = "#000";
-    ctx.font = "bold 72px arial";
-    ctx.fillText("You Win!", 50, 300);
+    gameWin = true;
     document.removeEventListener('keydown', handleKeyDown);
     document.removeEventListener('keyup', handleKeyUp);
   }
 }
 
+function drawGameWin() {
+  ctx.fillStyle = "#000";
+  ctx.font = "bold 72px arial";
+  ctx.fillText("You Win!", 50, 300);
+}
+
 function updateGrips(dt) {
+  var gripDuration = 7;
   hands.forEach(function(hand) {
     if(hand.grip > 0 && hand.prevX) {
-      hand.grip = Math.max(0, Math.round((hand.grip - dt * 1 / 5000) * 10000) / 10000);
+      hand.grip = Math.max(0, Math.round((hand.grip - dt * 1 / 1000 / gripDuration) * 10000) / 10000);
     }
   });
 }
@@ -206,6 +226,8 @@ function updateWorld(dt) {
 }
 
 function drawWorld() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawWall();
   drawTime();
   hands.forEach(drawHand);
 }
@@ -216,6 +238,8 @@ function loop(time) {
      
   updateWorld(dt);
   drawWorld();
+  if(gameOver) { drawGameOver(); }
+  if(gameWin) { drawGameWin(); }
   if (!pause) {
     requestAnimationFrame(loop);
   }
