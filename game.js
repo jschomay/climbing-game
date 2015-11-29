@@ -4,7 +4,7 @@ var lastTick, dt;
 var pause = false;
 
 var wall = [];
-var hands = [{side: 'right'}, {side: 'left'}];
+var hands = [{side: 'right', path: [{x: canvas.width / 2, y: canvas.height + 100}]}, {side: 'left', path: [{x: canvas.width / 2, y: canvas.height + 100}]}];
 var keysDown = {};
 var justPressed = null;
 var justReleased = null;
@@ -94,9 +94,27 @@ function buildWall() {
 }
 
 function drawHand(hand) {
-  ctx.save();
   var r = 35;
+  var handBias = hand.side == "right" ? 3 : -3;
+
+  ctx.save();
   ctx.strokeStyle = hand.side == "right" ? "red" : "blue";
+
+  // climbing path
+  ctx.save();
+  ctx.beginPath();
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.setLineDash([10,5]);
+  ctx.globalAlpha = 0.5;
+  ctx.moveTo(hand.path[0].x, hand.path[0].y);
+  hand.path.slice(1).forEach(function(p) {
+    ctx.lineTo(p.x + 10 + handBias, p.y - 10);
+  });
+  ctx.stroke();
+  ctx.closePath();
+  ctx.restore();
 
   if (hand.grip) {
     // active hold
@@ -122,8 +140,9 @@ function drawHand(hand) {
 function grab(hand, handHold) {
   hand.grip = 1;
   hand.handHoldName = handHold.name;
-  hand.prevX = hand.x;
-  hand.prevY = hand.y;
+  if(hand.path[hand.path.length - 1].x !== handHold.x && hand.path[hand.path.length - 1].y !== handHold.y) {
+    hand.path.push({x: handHold.x, y: handHold.y});
+  }
   hand.x = handHold.x;
   hand.y = handHold.y;
 }
@@ -149,6 +168,7 @@ function chooseHandHold(chosenHandHoldLetter) {
 
   var handHold = wall.reduce(isValidHandHold, null);
   if (handHold) {
+    freeHand.start = true;
     grab(freeHand, handHold);
   }
 }
@@ -193,7 +213,7 @@ function drawGameWin() {
 function updateGrips(dt) {
   var gripDuration = 7;
   hands.forEach(function(hand) {
-    if(hand.grip > 0 && hand.prevX) {
+    if(hand.start && hand.grip) {
       hand.grip = Math.max(0, Math.round((hand.grip - dt * 1 / 1000 / gripDuration) * 10000) / 10000);
     }
   });
@@ -233,16 +253,16 @@ function drawWorld() {
 }
 
 function loop(time) {
-  dt = time - lastTick || time;
-  lastTick = time;
-     
-  updateWorld(dt);
-  drawWorld();
-  if(gameOver) { drawGameOver(); }
-  if(gameWin) { drawGameWin(); }
   if (!pause) {
-    requestAnimationFrame(loop);
+    dt = time - lastTick || time;
+    lastTick = time;
+       
+    updateWorld(dt);
+    drawWorld();
+    if(gameOver) { drawGameOver(); }
+    if(gameWin) { drawGameWin(); }
   }
+  requestAnimationFrame(loop);
 }
 
 function init() {
@@ -263,13 +283,6 @@ todo
  
 - add finish line?
 
-- limited time grips
-  - use game loop
-  - arm drops
-  - dust/falling rocks
-    - particle generator
-
-
 - add vetical/horizontal scroll
   - generate larger wall
   - transfrorm canvas based on climb height
@@ -280,6 +293,10 @@ todo
   - set size and scale to fit
   - save as level
 
+- grips with different difficulties
+  - harder grips are more transparent
+  - grip indicator is smaller and shorter for harder grips
+
 - add score?
   - what to award? (vertical reach, speed, l/r/l/r, golf style score, grips with difficulty settings)
 
@@ -287,6 +304,11 @@ todo
   - human or robot-like?  With legs?
   - http://jsdo.it/j_s/SO6b for IK
   - (auto-animate legs?)
+
+- animations when losing grip
+  - dust/falling rocks
+    - particle generator
+  - character arm drops
 
 - 2 player race to the top
   - on same keyboard?
