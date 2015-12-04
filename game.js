@@ -2,9 +2,12 @@ var canvas = document.getElementById('game');
 var ctx = canvas.getContext('2d');
 var lastTick, dt;
 var pause = false;
+var wallWidth = canvas.width;
+var wallHeight = canvas.height;
 
 var wall = [];
-var hands = [{side: 'right', path: [{x: canvas.width / 2, y: canvas.height + 100}]}, {side: 'left', path: [{x: canvas.width / 2, y: canvas.height + 100}]}];
+var finishLine = 75;
+var hands = [{side: 'right', path: [{x: wallWidth / 2, y: wallHeight + 100}]}, {side: 'left', path: [{x: wallWidth / 2, y: wallHeight + 100}]}];
 var keysDown = {};
 var justPressed = null;
 var justReleased = null;
@@ -58,6 +61,35 @@ function addHandHold(name, x, y) {
 }
 
 function drawWall() {
+  // finish line
+  ctx.globalAlpha = 0.65;
+  ctx.save();
+  ctx.beginPath();
+  ctx.strokeStyle = "black";
+  ctx.lineWidth = 11;
+  ctx.moveTo(0, finishLine);
+  ctx.lineTo(wallWidth, finishLine);
+  ctx.stroke();
+  ctx.closePath();
+
+  ctx.beginPath();
+  ctx.strokeStyle = "white";
+  ctx.lineWidth = 5;
+  ctx.setLineDash([30]);
+  ctx.moveTo(0, finishLine - 3);
+  ctx.lineTo(wallWidth, finishLine - 3);
+  ctx.stroke();
+  ctx.closePath();
+
+  ctx.beginPath();
+  ctx.moveTo(0, finishLine + 3);
+  ctx.lineTo(wallWidth, finishLine + 3);
+  ctx.lineDashOffset = 30;
+  ctx.stroke();
+  ctx.closePath();
+  ctx.restore();
+
+  // handholds
   wall.forEach(drawHandHold);
 }
 
@@ -77,9 +109,9 @@ function buildWall() {
   var i = 0;
   var xOffset;
   var yOffset;
-  while (y < canvas.height - 20) {
+  while (y < wallHeight - 20) {
     x = 30;
-    while (x < canvas.width) {
+    while (x < wallWidth) {
       xOffset = randomBetween(-20, 20);
       yOffset = randomBetween(-50, 50);
       addHandHold(shuffledHandHoldNames[i], x + xOffset, y + yOffset);
@@ -196,7 +228,7 @@ function drawGameOver() {
 }
 
 function checkGameWin() {
-  if (hands.filter(function(hand) { return hand.y < 100; }).length == 2) {
+  if (hands.filter(function(hand) { return hand.y < finishLine; }).length) {
     pause = true;
     gameWin = true;
     document.removeEventListener('keydown', handleKeyDown);
@@ -246,7 +278,7 @@ function updateWorld(dt) {
 }
 
 function drawWorld() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0, 0, wallWidth, wallHeight);
   drawWall();
   drawTime();
   hands.forEach(drawHand);
@@ -281,8 +313,6 @@ init();
 /*
 todo
  
-- add finish line?
-
 - add vetical/horizontal scroll
   - generate larger wall
   - transfrorm canvas based on climb height
