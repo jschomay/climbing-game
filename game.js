@@ -1,19 +1,19 @@
 var canvas = document.getElementById('game');
 var ctx = canvas.getContext('2d');
 var lastTick, dt;
-var pause = false;
 var wallWidth = canvas.width;
 var wallHeight = canvas.height;
 
-var wall = [];
-var finishLine = 75;
-var hands = [{side: 'right', path: [{x: wallWidth / 2, y: wallHeight + 100}]}, {side: 'left', path: [{x: wallWidth / 2, y: wallHeight + 100}]}];
-var keysDown = {};
-var justPressed = null;
-var justReleased = null;
-var runningTime = 0;
-var gameOver = false;
-var gameWin = false;
+var pause;
+var wall;
+var finishLine;
+var hands;
+var keysDown;
+var justPressed;
+var justReleased;
+var runningTime;
+var gameOver;
+var gameWin;
 
 function shuffle(o){
   for(var j, x, i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
@@ -28,11 +28,12 @@ function degToRad(d) {
   return (Math.PI/180) * d;
 }
 
-var letters = [ 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
-
-var shuffledHandHoldNames = shuffle(letters);
-
 function handleKeyDown(e) {
+  if((gameOver || gameWin) && e.keyCode === 32) {
+    init();
+    return;
+  }
+
   var letter = String.fromCharCode(e.keyCode).toLowerCase();
   if(!keysDown[letter]) {
     keysDown[letter] = true;
@@ -104,6 +105,8 @@ function drawHandHold(handHold) {
 
 
 function buildWall() {
+  var letters = [ 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
+  var shuffledHandHoldNames = shuffle(letters);
   var x;
   var y = 80;
   var i = 0;
@@ -217,29 +220,31 @@ function checkGameOver() {
   if (hands.filter(function(hand) { return !hand.grip; }).length == 2) {
     pause = true;
     gameOver = true;
-    document.removeEventListener('keydown', handleKeyDown);
-    document.removeEventListener('keyup', handleKeyUp);
   }
 }
 function drawGameOver() {
   ctx.fillStyle = "#000";
   ctx.font = "bold 72px arial";
+  ctx.globalAlpha = 1;
   ctx.fillText("Game Over!", 20, 300);
+  ctx.font = "bold 22px arial";
+  ctx.fillText("Press 'space' to play again", 100, 340);
 }
 
 function checkGameWin() {
   if (hands.filter(function(hand) { return hand.y < finishLine; }).length) {
     pause = true;
     gameWin = true;
-    document.removeEventListener('keydown', handleKeyDown);
-    document.removeEventListener('keyup', handleKeyUp);
   }
 }
 
 function drawGameWin() {
   ctx.fillStyle = "#000";
+  ctx.globalAlpha = 1;
   ctx.font = "bold 72px arial";
-  ctx.fillText("You Win!", 50, 300);
+  ctx.fillText("You Win!", 80, 300);
+  ctx.font = "bold 22px arial";
+  ctx.fillText("Press 'space' to play again", 100, 340);
 }
 
 function updateGrips(dt) {
@@ -256,12 +261,12 @@ function drawTime() {
   ctx.fillStyle = "#000";
   ctx.font = "18px arial";
   ctx.clearRect(0,0,100,15);
-  ctx.fillText(runningTime, 10, 15);
+  ctx.fillText(Math.round(runningTime/1000), 10, 15);
   ctx.restore();
 }
 
 function updateWorld(dt) {
-  runningTime = Math.round(lastTick / 1000);
+  runningTime += dt;
   checkGameWin();
   checkGameOver();
 
@@ -285,10 +290,10 @@ function drawWorld() {
 }
 
 function loop(time) {
-  if (!pause) {
     dt = time - lastTick || time;
     lastTick = time;
        
+  if (!pause) {
     updateWorld(dt);
     drawWorld();
     if(gameOver) { drawGameOver(); }
@@ -298,16 +303,26 @@ function loop(time) {
 }
 
 function init() {
+  wall = [];
+  finishLine = 75;
+  hands = [{side: 'right', path: [{x: wallWidth / 2, y: wallHeight + 100}]}, {side: 'left', path: [{x: wallWidth / 2, y: wallHeight + 100}]}];
+  keysDown = {};
+  justPressed = null;
+  justReleased = null;
+  runningTime = 0;
+  gameOver = false;
+  gameWin = false;
+  pause = false;
+
   buildWall();
   grab(hands[0], wall[wall.length - 3]);
   grab(hands[1], wall[wall.length - 4]);
-  bindKeys();
-
-  loop(0);
 }
 
 
 init();
+bindKeys();
+loop(0);
 
 
 /*
