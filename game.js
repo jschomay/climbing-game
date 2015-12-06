@@ -1,9 +1,11 @@
 var canvas = document.getElementById('game');
 var ctx = canvas.getContext('2d');
 var lastTick, dt;
-var wallWidth = canvas.width;
-var wallHeight = canvas.height;
+var canvasWidth = canvas.width;
+var canvasHeight = canvas.height;
+var rockTexture;
 
+var wallHeight;
 var pause;
 var wall;
 var finishLine;
@@ -26,6 +28,26 @@ function randomBetween(min,max) {
 
 function degToRad(d) {
   return (Math.PI/180) * d;
+}
+
+function wrapText(text, x, y, maxWidth, lineHeight) {
+  var words = text.split(' ');
+  var line = '';
+
+  for(var n = 0; n < words.length; n++) {
+    var testLine = line + words[n] + ' ';
+    var metrics = ctx.measureText(testLine);
+    var testWidth = metrics.width;
+    if (testWidth > maxWidth && n > 0) {
+      ctx.fillText(line, x, y);
+      line = words[n] + ' ';
+      y += lineHeight;
+    }
+    else {
+      line = testLine;
+    }
+  }
+  ctx.fillText(line, x, y);
 }
 
 function handleKeyDown(e) {
@@ -62,6 +84,10 @@ function addHandHold(name, x, y) {
 }
 
 function drawWall() {
+  // rock texture
+  ctx.fillStyle = rockTexture;
+  ctx.fillRect(0, -canvasHeight / 2, canvasWidth, wallHeight + canvasHeight);
+
   // finish line
   ctx.globalAlpha = 0.65;
   ctx.save();
@@ -69,7 +95,7 @@ function drawWall() {
   ctx.strokeStyle = "black";
   ctx.lineWidth = 11;
   ctx.moveTo(0, finishLine);
-  ctx.lineTo(wallWidth, finishLine);
+  ctx.lineTo(canvasWidth, finishLine);
   ctx.stroke();
   ctx.closePath();
 
@@ -78,13 +104,13 @@ function drawWall() {
   ctx.lineWidth = 5;
   ctx.setLineDash([30]);
   ctx.moveTo(0, finishLine - 3);
-  ctx.lineTo(wallWidth, finishLine - 3);
+  ctx.lineTo(canvasWidth, finishLine - 3);
   ctx.stroke();
   ctx.closePath();
 
   ctx.beginPath();
   ctx.moveTo(0, finishLine + 3);
-  ctx.lineTo(wallWidth, finishLine + 3);
+  ctx.lineTo(canvasWidth, finishLine + 3);
   ctx.lineDashOffset = 30;
   ctx.stroke();
   ctx.closePath();
@@ -107,6 +133,7 @@ function drawHandHold(handHold) {
 function buildWall() {
   var letters = [ 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
   var shuffledHandHoldNames = shuffle(letters);
+  wallHeight = canvasHeight * 2;
   var x;
   var y = 80;
   var i = 0;
@@ -114,7 +141,7 @@ function buildWall() {
   var yOffset;
   while (y < wallHeight - 20) {
     x = 30;
-    while (x < wallWidth) {
+    while (x < canvasWidth) {
       xOffset = randomBetween(-20, 20);
       yOffset = randomBetween(-50, 50);
       addHandHold(shuffledHandHoldNames[i], x + xOffset, y + yOffset);
@@ -175,7 +202,7 @@ function drawHand(hand) {
 function grab(hand, handHold) {
   hand.grip = 1;
   hand.handHoldName = handHold.name;
-  if(hand.path[hand.path.length - 1].x !== handHold.x && hand.path[hand.path.length - 1].y !== handHold.y) {
+  if(!hand.path.length || hand.path[hand.path.length - 1].x !== handHold.x && hand.path[hand.path.length - 1].y !== handHold.y) {
     hand.path.push({x: handHold.x, y: handHold.y});
   }
   hand.x = handHold.x;
@@ -223,6 +250,9 @@ function checkGameOver() {
   }
 }
 function drawGameOver() {
+  ctx.globalAlpha = 0.3;
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, canvasWidth / 2, canvasWidth, 150);
   ctx.fillStyle = "#000";
   ctx.font = "bold 72px arial";
   ctx.globalAlpha = 1;
@@ -239,12 +269,28 @@ function checkGameWin() {
 }
 
 function drawGameWin() {
+  ctx.globalAlpha = 0.3;
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 40, canvasWidth, 150);
   ctx.fillStyle = "#000";
   ctx.globalAlpha = 1;
   ctx.font = "bold 72px arial";
-  ctx.fillText("You Win!", 80, 300);
+  ctx.fillText("You Win!", 80, 120);
   ctx.font = "bold 22px arial";
-  ctx.fillText("Press 'space' to play again", 100, 340);
+  ctx.fillText("Press 'space' to play again", 100, 160);
+}
+
+function drawInstructions() {
+  ctx.globalAlpha = 0.3;
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, wallHeight + 50, canvasWidth, 400);
+  ctx.fillStyle = "#000";
+  ctx.globalAlpha = 1;
+  ctx.font = "bold 22px arial";
+  ctx.fillText("How to play:", 160, wallHeight + 100);
+  ctx.font = "bold 18px arial";
+  var instructions = "Climb the wall by holding down the key matching the lettered handhold you want to grab next.  Start with the two circled handholds, and don't let go with both hands at the same time!";
+  wrapText(instructions, 30, wallHeight + 140, canvasWidth - 50, 25);
 }
 
 function updateGrips(dt) {
@@ -260,7 +306,6 @@ function drawTime() {
   ctx.save();
   ctx.fillStyle = "#000";
   ctx.font = "18px arial";
-  ctx.clearRect(0,0,100,15);
   ctx.fillText(Math.round(runningTime/1000), 10, 15);
   ctx.restore();
 }
@@ -283,10 +328,19 @@ function updateWorld(dt) {
 }
 
 function drawWorld() {
-  ctx.clearRect(0, 0, wallWidth, wallHeight);
+  ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+  var vOffset = hands.reduce(function(a,b){ return a.y + b.y; }) / 2;
+  ctx.save();
+  ctx.translate(0, -vOffset + canvasHeight / 2);
   drawWall();
-  drawTime();
   hands.forEach(drawHand);
+  drawInstructions();
+  ctx.restore();
+
+  // outside of global transform
+  drawTime();
+  if(gameOver) { drawGameOver(); }
+  if(gameWin) { drawGameWin(); }
 }
 
 function loop(time) {
@@ -296,16 +350,15 @@ function loop(time) {
   if (!pause) {
     updateWorld(dt);
     drawWorld();
-    if(gameOver) { drawGameOver(); }
-    if(gameWin) { drawGameWin(); }
   }
   requestAnimationFrame(loop);
 }
 
 function init() {
   wall = [];
+  buildWall();
   finishLine = 75;
-  hands = [{side: 'right', path: [{x: wallWidth / 2, y: wallHeight + 100}]}, {side: 'left', path: [{x: wallWidth / 2, y: wallHeight + 100}]}];
+  hands = [{side: 'right', path: []}, {side: 'left', path: []}];
   keysDown = {};
   justPressed = null;
   justReleased = null;
@@ -314,15 +367,22 @@ function init() {
   gameWin = false;
   pause = false;
 
-  buildWall();
   grab(hands[0], wall[wall.length - 3]);
   grab(hands[1], wall[wall.length - 4]);
 }
 
 
-init();
-bindKeys();
-loop(0);
+// preload texture
+var img = new Image();
+img.src ='rocks.jpg';
+img.onload = function(){
+  rockTexture = ctx.createPattern(img,'repeat');
+
+  // kick off
+  init();
+  bindKeys();
+  loop(0);
+};
 
 
 /*
