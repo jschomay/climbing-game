@@ -4,7 +4,8 @@ var lastTick, dt;
 var canvasWidth = canvas.width;
 var canvasHeight = canvas.height;
 var rockTexture;
-
+var vOffset;
+var scrollSpeed;
 var wallHeight;
 var pause;
 var wall;
@@ -315,6 +316,14 @@ function updateWorld(dt) {
   checkGameWin();
   checkGameOver();
 
+  var vOffsetTarget = hands.reduce(function(a,b){ return a.y + b.y; }) / 2;
+  var maxScrollSpeed = 20;
+  if (vOffset > vOffsetTarget) {
+    scrollSpeed = Math.min(maxScrollSpeed, scrollSpeed + (dt * 20) / 1000);
+  }
+  scrollSpeed = Math.max(0, scrollSpeed - (dt * 15) / 1000);
+  vOffset -= scrollSpeed;
+
   if(justPressed) {
     chooseHandHold(justPressed);
     justPressed = null;
@@ -329,7 +338,6 @@ function updateWorld(dt) {
 
 function drawWorld() {
   ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-  var vOffset = hands.reduce(function(a,b){ return a.y + b.y; }) / 2;
   ctx.save();
   ctx.translate(0, -vOffset + canvasHeight / 2);
   drawWall();
@@ -358,6 +366,7 @@ function init() {
   wall = [];
   buildWall();
   finishLine = 75;
+  scrollSpeed = 0;
   hands = [{side: 'right', path: []}, {side: 'left', path: []}];
   keysDown = {};
   justPressed = null;
@@ -369,6 +378,8 @@ function init() {
 
   grab(hands[0], wall[wall.length - 3]);
   grab(hands[1], wall[wall.length - 4]);
+  var vOffsetTarget = hands.reduce(function(a,b){ return a.y + b.y; }) / 2;
+  vOffset = vOffsetTarget;
 }
 
 
