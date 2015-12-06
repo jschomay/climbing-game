@@ -5,6 +5,8 @@ var canvasWidth = canvas.width;
 var canvasHeight = canvas.height;
 var rockTexture;
 var vOffset;
+var hOffset;
+var scale;
 var scrollSpeed;
 var wallHeight;
 var pause;
@@ -272,13 +274,13 @@ function checkGameWin() {
 function drawGameWin() {
   ctx.globalAlpha = 0.3;
   ctx.fillStyle = "#fff";
-  ctx.fillRect(0, 40, canvasWidth, 150);
+  ctx.fillRect(0, -160, canvasWidth, 150);
   ctx.fillStyle = "#000";
   ctx.globalAlpha = 1;
   ctx.font = "bold 72px arial";
-  ctx.fillText("You Win!", 80, 120);
+  ctx.fillText("You Win!", 80, -80);
   ctx.font = "bold 22px arial";
-  ctx.fillText("Press 'space' to play again", 100, 160);
+  ctx.fillText("Press 'space' to play again", 100, -40);
 }
 
 function drawInstructions() {
@@ -312,53 +314,63 @@ function drawTime() {
 }
 
 function updateWorld(dt) {
-  runningTime += dt;
-  checkGameWin();
-  checkGameOver();
+  if (!pause) {
+    runningTime += dt;
+    checkGameWin();
+    checkGameOver();
 
-  var vOffsetTarget = hands.reduce(function(a,b){ return a.y + b.y; }) / 2;
-  var maxScrollSpeed = 20;
-  if (vOffset > vOffsetTarget) {
-    scrollSpeed = Math.min(maxScrollSpeed, scrollSpeed + (dt * 20) / 1000);
-  }
-  scrollSpeed = Math.max(0, scrollSpeed - (dt * 15) / 1000);
-  vOffset -= scrollSpeed;
+    if(justPressed) {
+      chooseHandHold(justPressed);
+      justPressed = null;
+    }
+    if(justReleased) {
+      releaseHandHold(justReleased);
+      justReleased = null;
+    }
 
-  if(justPressed) {
-    chooseHandHold(justPressed);
-    justPressed = null;
-  }
-  if(justReleased) {
-    releaseHandHold(justReleased);
-    justReleased = null;
+    updateGrips(dt);
+
+    var vOffsetTarget = hands.reduce(function(a,b){ return a.y + b.y; }) / 2;
+    var maxScrollSpeed = 20;
+    if (vOffset > vOffsetTarget) {
+      scrollSpeed = Math.min(maxScrollSpeed, scrollSpeed + (dt * 20) / 1000);
+    }
+    scrollSpeed = Math.max(0, scrollSpeed - (dt * 15) / 1000);
+    vOffset -= scrollSpeed;
   }
 
-  updateGrips(dt);
+
+
+  if(gameWin) {
+    var scaleFactor = canvasHeight * 0.9 / wallHeight;
+    // hOffset = Math.min(canvasWidth * scaleFactor, hOffset + dt * 30 / 1000);
+    vOffset = Math.max(100, vOffset - dt * 10 / 1000);
+    scale = Math.max(scaleFactor, scale - dt * 0.1 / 1000);
+  }
+
 }
 
 function drawWorld() {
   ctx.clearRect(0, 0, canvasWidth, canvasHeight);
   ctx.save();
-  ctx.translate(0, -vOffset + canvasHeight / 2);
+  ctx.scale(scale, scale);
+  ctx.translate(hOffset, -vOffset + canvasHeight / 2);
   drawWall();
   hands.forEach(drawHand);
   drawInstructions();
+  if(gameWin) { drawGameWin(); }
   ctx.restore();
 
   // outside of global transform
   drawTime();
   if(gameOver) { drawGameOver(); }
-  if(gameWin) { drawGameWin(); }
 }
 
 function loop(time) {
-    dt = time - lastTick || time;
-    lastTick = time;
-       
-  if (!pause) {
-    updateWorld(dt);
-    drawWorld();
-  }
+  dt = time - lastTick || time;
+  lastTick = time;
+  updateWorld(dt);
+  drawWorld();
   requestAnimationFrame(loop);
 }
 
@@ -367,6 +379,7 @@ function init() {
   buildWall();
   finishLine = 75;
   scrollSpeed = 0;
+  scale = 1;
   hands = [{side: 'right', path: []}, {side: 'left', path: []}];
   keysDown = {};
   justPressed = null;
@@ -380,6 +393,7 @@ function init() {
   grab(hands[1], wall[wall.length - 4]);
   var vOffsetTarget = hands.reduce(function(a,b){ return a.y + b.y; }) / 2;
   vOffset = vOffsetTarget;
+  hOffset = 0;
 }
 
 
