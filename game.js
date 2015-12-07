@@ -82,8 +82,10 @@ function dist(a, b) {
   return Math.sqrt(x*x + y*y);
 }
 
-function addHandHold(name, x, y) {
-  wall.push({name: name, x: x, y:y});
+function addHandHold(name, x, y, difficulty) {
+  if (difficulty) {
+    wall.push({name: name, x: x, y:y, difficulty: difficulty});
+  }
 }
 
 function drawWall() {
@@ -125,7 +127,7 @@ function drawWall() {
 
 function drawHandHold(handHold) {
   ctx.save();
-  ctx.globalAlpha = 0.8;
+  ctx.globalAlpha = 0.9 * handHold.difficulty;
   ctx.fillStyle = "#ccc";
   ctx.font = "bold 28px arial";
   ctx.fillText(handHold.name.toUpperCase(), handHold.x, handHold.y);
@@ -135,6 +137,7 @@ function drawHandHold(handHold) {
 
 function buildWall() {
   var letters = [ 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
+  var difficulties = [1, 1, 1, 0.6, 0.6, 0.4, 0];
   var shuffledHandHoldNames = shuffle(letters);
   wallHeight = canvasHeight * 2;
   var x;
@@ -147,19 +150,19 @@ function buildWall() {
     while (x < canvasWidth) {
       xOffset = randomBetween(-20, 20);
       yOffset = randomBetween(-50, 50);
-      addHandHold(shuffledHandHoldNames[i], x + xOffset, y + yOffset);
-      x += 80;
+      addHandHold(shuffledHandHoldNames[i], x + xOffset, y + yOffset, difficulties[randomBetween(0, difficulties.length - 1)]);
+      x += 70;
       i += 1;
       if (i >= shuffledHandHoldNames.length) {
         i = 0;
       }
     }
-    y += 170;
+    y += 160;
   }
 }
 
 function drawHand(hand) {
-  var r = 35;
+  var r = 35 * hand.grip;
   var handBias = hand.side == "right" ? 3 : -3;
 
   ctx.save();
@@ -203,7 +206,7 @@ function drawHand(hand) {
 
 
 function grab(hand, handHold) {
-  hand.grip = 1;
+  hand.grip = 1 * handHold.difficulty;
   hand.handHoldName = handHold.name;
   if(!hand.path.length || hand.path[hand.path.length - 1].x !== handHold.x && hand.path[hand.path.length - 1].y !== handHold.y) {
     hand.path.push({x: handHold.x, y: handHold.y});
@@ -286,21 +289,24 @@ function drawGameWin() {
 function drawInstructions() {
   ctx.globalAlpha = 0.3;
   ctx.fillStyle = "#fff";
-  ctx.fillRect(0, wallHeight + 50, canvasWidth, 400);
+  ctx.fillRect(0, wallHeight, canvasWidth, 400);
   ctx.fillStyle = "#000";
   ctx.globalAlpha = 1;
   ctx.font = "bold 22px arial";
-  ctx.fillText("How to play:", 160, wallHeight + 100);
+  ctx.fillText("How to play:", 160, wallHeight + 40);
   ctx.font = "bold 18px arial";
   var instructions = "Climb the wall by holding down the key matching the lettered handhold you want to grab next.  Start with the two circled handholds, and don't let go with both hands at the same time!";
-  wrapText(instructions, 30, wallHeight + 140, canvasWidth - 50, 25);
+  wrapText(instructions, 30, wallHeight + 80, canvasWidth - 50, 25);
 }
 
 function updateGrips(dt) {
-  var gripDuration = 7;
+  var gripDuration = 15;
   hands.forEach(function(hand) {
     if(hand.start && hand.grip) {
       hand.grip = Math.max(0, Math.round((hand.grip - dt * 1 / 1000 / gripDuration) * 10000) / 10000);
+      if (hand.grip === 0) {
+        hand.path.pop();
+      }
     }
   });
 }
@@ -389,8 +395,8 @@ function init() {
   gameWin = false;
   pause = false;
 
-  grab(hands[0], wall[wall.length - 3]);
-  grab(hands[1], wall[wall.length - 4]);
+  grab(hands[0], wall[wall.length - 2]);
+  grab(hands[1], wall[wall.length - 3]);
   var vOffsetTarget = hands.reduce(function(a,b){ return a.y + b.y; }) / 2;
   vOffset = vOffsetTarget;
   hOffset = 0;
