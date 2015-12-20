@@ -349,7 +349,6 @@ function updateWorld(dt) {
 
   if(gameWin) {
     var scaleFactor = canvasHeight * 0.9 / wallHeight;
-    // hOffset = Math.min(canvasWidth * scaleFactor, hOffset + dt * 30 / 1000);
     vOffset = Math.max(100, vOffset - dt * 10 / 1000);
     scale = Math.max(scaleFactor, scale - dt * 0.1 / 1000);
   }
@@ -359,8 +358,10 @@ function updateWorld(dt) {
 function drawWorld() {
   ctx.clearRect(0, 0, canvasWidth, canvasHeight);
   ctx.save();
+  // scale whole canvas and keep horizontally centered
   ctx.scale(scale, scale);
-  ctx.translate(hOffset, -vOffset + canvasHeight / 2);
+  ctx.translate(-hOffset, -vOffset + canvasHeight / 2);
+  ctx.translate(hOffset / scale, 0);
   drawWall();
   hands.forEach(drawHand);
   drawInstructions();
@@ -399,7 +400,7 @@ function init() {
   grab(hands[1], wall[wall.length - 3]);
   var vOffsetTarget = hands.reduce(function(a,b){ return a.y + b.y; }) / 2;
   vOffset = vOffsetTarget;
-  hOffset = 0;
+  hOffset = canvasWidth / 2;
 }
 
 
