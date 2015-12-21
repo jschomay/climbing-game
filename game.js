@@ -127,9 +127,9 @@ function drawWall() {
 
 function drawHandHold(handHold) {
   ctx.save();
-  ctx.globalAlpha = 0.9 * handHold.difficulty;
+  ctx.globalAlpha = 0.8;
   ctx.fillStyle = "#ccc";
-  ctx.font = "bold 28px arial";
+  ctx.font = "bold " + 28 * handHold.difficulty + "px arial";
   ctx.fillText(handHold.name.toUpperCase(), handHold.x, handHold.y);
   ctx.restore();
 }
@@ -162,7 +162,7 @@ function buildWall() {
 }
 
 function drawHand(hand) {
-  var r = 35 * hand.grip;
+  var r = 35;
   var handBias = hand.side == "right" ? 3 : -3;
 
   ctx.save();
@@ -206,8 +206,8 @@ function drawHand(hand) {
 
 
 function grab(hand, handHold) {
-  hand.grip = 1 * handHold.difficulty;
-  hand.handHoldName = handHold.name;
+  hand.grip = 1;
+  hand.handHold = handHold;
   if(!hand.path.length || hand.path[hand.path.length - 1].x !== handHold.x && hand.path[hand.path.length - 1].y !== handHold.y) {
     hand.path.push({x: handHold.x, y: handHold.y});
   }
@@ -217,7 +217,7 @@ function grab(hand, handHold) {
 
 function chooseHandHold(chosenHandHoldLetter) {
   // only proceed if the matching grip has been released
-  if (hands.filter(function(hand) { return hand.grip && hand.handHoldName === chosenHandHoldLetter; }).length) { return; }
+  if (hands.filter(function(hand) { return hand.grip && hand.handHold.name === chosenHandHoldLetter; }).length) { return; }
 
   var freeHand = hands.filter(function(hand) { return !hand.grip; })[0];
   if (!freeHand) { return; }
@@ -243,7 +243,7 @@ function chooseHandHold(chosenHandHoldLetter) {
 
 function releaseHandHold(releasedLetter) {
   hands.map(function(hand) {
-    if(hand.handHoldName && hand.handHoldName.toLowerCase() === releasedLetter) {
+    if(hand.handHold.name && hand.handHold.name.toLowerCase() === releasedLetter) {
       hand.grip = 0;
     }
   });
@@ -300,13 +300,10 @@ function drawInstructions() {
 }
 
 function updateGrips(dt) {
-  var gripDuration = 15;
   hands.forEach(function(hand) {
+    var gripDuration = 15 * hand.handHold.difficulty;
     if(hand.start && hand.grip) {
       hand.grip = Math.max(0, Math.round((hand.grip - dt * 1 / 1000 / gripDuration) * 10000) / 10000);
-      if (hand.grip === 0) {
-        hand.path.pop();
-      }
     }
   });
 }
