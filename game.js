@@ -10,6 +10,7 @@ var scale;
 var scrollSpeed;
 var wallHeight;
 var pause;
+var start;
 var wall;
 var finishLine;
 var hands;
@@ -162,6 +163,7 @@ function buildWall() {
 }
 
 function drawHand(hand) {
+  if(!hand.start){ return; }
   var r = 35;
   var handBias = hand.side == "right" ? 3 : -3;
 
@@ -237,26 +239,27 @@ function chooseHandHold(chosenHandHoldLetter) {
   var handHold = wall.reduce(isValidHandHold, null);
   if (handHold) {
     freeHand.start = true;
+    start = true;
     grab(freeHand, handHold);
   }
 }
 
 function releaseHandHold(releasedLetter) {
   hands.map(function(hand) {
-    if(hand.handHold.name && hand.handHold.name.toLowerCase() === releasedLetter) {
+    if(hand.start && hand.handHold.name && hand.handHold.name.toLowerCase() === releasedLetter) {
       hand.grip = 0;
     }
   });
 }
 
 function checkGameOver() {
-  if (hands.filter(function(hand) { return !hand.grip; }).length == 2) {
+  if (start && hands.filter(function(hand) { return !hand.grip; }).length == 2) {
     pause = true;
     gameOver = true;
   }
 }
 function drawGameOver() {
-  ctx.globalAlpha = 0.3;
+  ctx.globalAlpha = 0.4;
   ctx.fillStyle = "#fff";
   ctx.fillRect(0, canvasWidth / 2, canvasWidth, 150);
   ctx.fillStyle = "#000";
@@ -275,7 +278,7 @@ function checkGameWin() {
 }
 
 function drawGameWin() {
-  ctx.globalAlpha = 0.3;
+  ctx.globalAlpha = 0.4;
   ctx.fillStyle = "#fff";
   ctx.fillRect(0, -160, canvasWidth, 150);
   ctx.fillStyle = "#000";
@@ -287,7 +290,7 @@ function drawGameWin() {
 }
 
 function drawInstructions() {
-  ctx.globalAlpha = 0.3;
+  ctx.globalAlpha = 0.4;
   ctx.fillStyle = "#fff";
   ctx.fillRect(0, wallHeight, canvasWidth, 400);
   ctx.fillStyle = "#000";
@@ -295,14 +298,14 @@ function drawInstructions() {
   ctx.font = "bold 22px arial";
   ctx.fillText("How to play:", 160, wallHeight + 40);
   ctx.font = "bold 18px arial";
-  var instructions = "Climb the wall by holding down the key matching the lettered handhold you want to grab next.  Start with the two circled handholds, and don't let go with both hands at the same time!";
+  var instructions = "Climb the wall by grabbing a handhold within reach by holding down the key matching the handhold's letter.  Don't let go with both hands at the same time!";
   wrapText(instructions, 30, wallHeight + 80, canvasWidth - 50, 25);
 }
 
 function updateGrips(dt) {
   hands.forEach(function(hand) {
-    var gripDuration = 15 * hand.handHold.difficulty;
     if(hand.start && hand.grip) {
+      var gripDuration = 15 * hand.handHold.difficulty;
       hand.grip = Math.max(0, Math.round((hand.grip - dt * 1 / 1000 / gripDuration) * 10000) / 10000);
     }
   });
@@ -392,10 +395,13 @@ function init() {
   gameOver = false;
   gameWin = false;
   pause = false;
+  start = false;
 
-  grab(hands[0], wall[wall.length - 2]);
-  grab(hands[1], wall[wall.length - 3]);
-  var vOffsetTarget = hands.reduce(function(a,b){ return a.y + b.y; }) / 2;
+  hands[0].x = canvasWidth / 2;
+  hands[0].y = wallHeight;
+  hands[1].x = canvasWidth / 2;
+  hands[1].y = wallHeight;
+  var vOffsetTarget = hands.reduce(function(a,b){ return a.y + b.y; }) / 2 - 100;
   vOffset = vOffsetTarget;
   hOffset = canvasWidth / 2;
 }
