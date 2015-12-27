@@ -66,7 +66,7 @@ var climber = (function() {
     // drop arm if grip was dropped
     if(!activeTarget.grip) {
       activeTarget_.y += 50;
-      activeTarget_.x += bendDirection * 50;
+      activeTarget_.x += bendDirection * 30;
       reachSpeed_ /= 2;
     }
 
@@ -83,12 +83,30 @@ var climber = (function() {
 
     ik(activeArm, bendDirection);
 
+    // gravity
+    var activeArmExtention = dist(activeArm.end, activeArm.start);
+    var passiveArmExtention = dist(passiveArm.end, passiveArm.start);
+    if(activeTarget.grip && activeArmExtention < armLength && passiveArmExtention < armLength) {
+      var gravityTarget = {
+        x: activeArm.end.x,
+        y: activeArm.end.y + activeArmExtention
+      };
+      dx = (gravityTarget.x - activeArm.start.x) / dist(gravityTarget, activeArm.start);
+      dy = (gravityTarget.y - activeArm.start.y) / dist(gravityTarget, activeArm.start);
+      activeArm.start.x += dx * 1 * 16 / dt;
+      activeArm.start.y += dy * 1 * 16 / dt;
+      activeArm.mid.x += dx * 1 * 16 / dt;
+      activeArm.mid.y += dx * 1 * 16 / dt;
+    }
+
+    // drag passive arm's start along too to keep everything aligned (it will auto-retarget the next update call)
     var xdiff = activeArm.start.x  - startx;
     var ydiff = activeArm.start.y - starty;
 
-    // drag passive arm's start along too (it will auto-retarget the next update call)
     passiveArm.start.x += xdiff;
     passiveArm.start.y += ydiff;
+    passiveArm.mid.x += xdiff;
+    passiveArm.mid.y += ydiff;
   }
 
   function update(leftTarget, rightTarget, dt) {
