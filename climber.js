@@ -57,13 +57,26 @@ var climber = (function() {
   }
 
   function reachTowardsTarget(activeArm, activeTarget, passiveArm, bendDirection, dt) {
+    var activeTarget_ = {
+      x: activeTarget.x,
+      y: activeTarget.y
+    };
+    var reachSpeed_ = reachSpeed;
+
+    // drop arm if grip was dropped
+    if(!activeTarget.grip) {
+      activeTarget_.y += 50;
+      activeTarget_.x += bendDirection * 50;
+      reachSpeed_ /= 2;
+    }
+
     // progressively move towards target
-    var reachLength = dist(activeTarget, activeArm.end) || 1;
-    var dx = (activeTarget.x - activeArm.end.x) / reachLength;
-    var dy = (activeTarget.y - activeArm.end.y) / reachLength;
+    var reachLength = dist(activeTarget_, activeArm.end) || 1;
+    var dx = (activeTarget_.x - activeArm.end.x) / reachLength;
+    var dy = (activeTarget_.y - activeArm.end.y) / reachLength;
     dt = dt || 16;
-    activeArm.target.x += Math.ceil(dx * reachSpeed * 16 / dt);
-    activeArm.target.y += Math.ceil(dy * reachSpeed * 16 / dt);
+    activeArm.target.x += Math.ceil(dx * reachSpeed_ * 16 / dt);
+    activeArm.target.y += Math.ceil(dy * reachSpeed_ * 16 / dt);
 
     var startx = activeArm.start.x;
     var starty = activeArm.start.y;
