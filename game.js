@@ -20,6 +20,7 @@ var justReleased;
 var runningTime;
 var gameOver;
 var gameWin;
+var climberBody;
 
 function shuffle(o){
   for(var j, x, i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
@@ -271,7 +272,7 @@ function drawGameOver() {
 }
 
 function checkGameWin() {
-  if (hands.filter(function(hand) { return hand.y < finishLine; }).length) {
+  if (climberBody.filter(function(hand) { return hand.y < finishLine; }).length) {
     pause = true;
     gameWin = true;
   }
@@ -336,6 +337,8 @@ function updateWorld(dt) {
 
     updateGrips(dt);
 
+    climber.update(hands[0], hands[1], dt);
+
     var vOffsetTarget = hands.reduce(function(a,b){ return a.y + b.y; }) / 2;
     var maxScrollSpeed = 20;
     if (vOffset > vOffsetTarget) {
@@ -358,14 +361,18 @@ function updateWorld(dt) {
 function drawWorld() {
   ctx.clearRect(0, 0, canvasWidth, canvasHeight);
   ctx.save();
+
   // scale whole canvas and keep horizontally centered
   ctx.scale(scale, scale);
   ctx.translate(-hOffset, -vOffset + canvasHeight / 2);
   ctx.translate(hOffset / scale, 0);
+
   drawWall();
   hands.forEach(drawHand);
   drawInstructions();
   if(gameWin) { drawGameWin(); }
+  climber.draw();
+
   ctx.restore();
 
   // outside of global transform
@@ -397,13 +404,15 @@ function init() {
   pause = false;
   start = false;
 
-  hands[0].x = canvasWidth / 2;
+  hands[0].x = canvasWidth / 2 - 100;
   hands[0].y = wallHeight;
-  hands[1].x = canvasWidth / 2;
+  hands[1].x = canvasWidth / 2 + 100;
   hands[1].y = wallHeight;
   var vOffsetTarget = hands.reduce(function(a,b){ return a.y + b.y; }) / 2 - 100;
   vOffset = vOffsetTarget;
   hOffset = canvasWidth / 2;
+
+  climberBody = climber.init(hands);
 }
 
 
@@ -423,19 +432,11 @@ img.onload = function(){
 /*
 todo
  
-- add vetical/horizontal scroll
-  - generate larger wall
-  - transfrorm canvas based on climb height
-
 - map editor
   - switch modes/ second page
   - click to place a handhold
   - set size and scale to fit
   - save as level
-
-- grips with different difficulties
-  - harder grips are more transparent
-  - grip indicator is smaller and shorter for harder grips
 
 - add score?
   - what to award? (vertical reach, speed, l/r/l/r, golf style score, grips with difficulty settings)
