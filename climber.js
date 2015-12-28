@@ -134,6 +134,7 @@ var climber = (function() {
     ctx.lineTo( joints.mid.x, joints.mid.y );
     ctx.lineTo( joints.end.x, joints.end.y );
     ctx.strokeStyle = "rgba(0,0,0,1)";
+    ctx.lineJoin="round";
     ctx.lineWidth = 10;
     ctx.stroke();
 
