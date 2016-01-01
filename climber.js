@@ -54,19 +54,19 @@ var climber = (function() {
       target: {x: hands[0].x + 0, y: hands[0].y + 0},
       start: {x: hands[0].x + 50, y: hands[0].y + 50},
       mid: {x: hands[0].x + 0,  y: hands[0].y + 50},
-      end: {x: hands[0].x + 0, y: hands[0].y + 0}
+      end: {x: hands[0].x + 1, y: hands[0].y + 0}
     };
     rightArm = {
       target: {x: hands[1].x + 0, y: hands[1].y + 0},
       start: {x: hands[1].x - 60, y: hands[1].y + 50},
       mid: {x: hands[1].x + 0, y: hands[1].y + 50},
-      end: {x: hands[1].x + 0, y: hands[1].y + 0}
+      end: {x: hands[1].x + 1, y: hands[1].y + 0}
     };
     return [leftArm.end, rightArm.end];
   }
 
   function ik(joints, bendDirection) {
-    bendDirection = bendDirection || 1;
+    bhandendDirection = bendDirection || 1;
 
     var dx = joints.target.x - joints.start.x;
     var dy = joints.target.y - joints.start.y;
@@ -100,7 +100,10 @@ var climber = (function() {
 
   }
 
-  function reachTowardsTarget(activeArm, activeTarget, passiveArm, bendDirection, dt) {
+  function reachTowardsTarget(activeArm, activeTarget, passiveArm, passiveTarget, bendDirection, dt) {
+    if (dist(activeArm.end, activeTarget) === 0) {
+      activeArm.end.start = true;
+    }
     var activeTarget_ = {
       x: activeTarget.x,
       y: activeTarget.y
@@ -109,8 +112,8 @@ var climber = (function() {
 
     // drop arm if grip was dropped
     if(!activeTarget.grip) {
-      activeTarget_.y += 50;
-      activeTarget_.x += bendDirection * 30;
+      activeTarget_.x = activeArm.start.x + bendDirection * 80;
+      activeTarget_.y = activeArm.start.y - 20;
       reachSpeed_ /= 2;
     }
 
@@ -127,10 +130,16 @@ var climber = (function() {
 
     ik(activeArm, bendDirection);
 
-    // gravity
     var activeArmExtention = dist(activeArm.end, activeArm.start);
     var passiveArmExtention = dist(passiveArm.end, passiveArm.start);
-    if(activeTarget.grip && activeArmExtention < armLength && passiveArmExtention < armLength) {
+
+    //flex
+    if(activeTarget.grip && passiveTarget.grip && passiveArm.start.y > passiveArm.end.y + 90 && activeArm.start.y > activeArm.end.y + 90 && activeArmExtention < armLength && passiveArmExtention < armLength) {
+      activeArm.start.y -= 0.5;
+    }
+
+    // gravity
+    if((activeTarget.grip || passiveTarget.grip) && activeArmExtention < armLength && passiveArmExtention < armLength) {
       var gravityTarget = {
         x: activeArm.end.x,
         y: activeArm.end.y + activeArmExtention
@@ -154,8 +163,8 @@ var climber = (function() {
   }
 
   function update(leftTarget, rightTarget, dt) {
-    reachTowardsTarget(leftArm, leftTarget, rightArm, -1, dt);
-    reachTowardsTarget(rightArm, rightTarget, leftArm, 1, dt);
+    reachTowardsTarget(leftArm, leftTarget, rightArm, rightTarget, -1, dt);
+    reachTowardsTarget(rightArm, rightTarget, leftArm, leftTarget, 1, dt);
   }
 
   function draw() {

@@ -22,6 +22,7 @@ var gameOver;
 var gameWin;
 var climberBody;
 var robotSprites;
+var drop;
 
 function shuffle(o){
   for(var j, x, i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
@@ -230,7 +231,9 @@ function chooseHandHold(chosenHandHoldLetter) {
   function isValidHandHold(acc, handHold) {
     if (acc) { return acc; }
     if (handHold.name === chosenHandHoldLetter &&
-        dist(handHold, otherHand) < climber.armLength * 1.5) {
+        otherHand.y - handHold.y < climber.armLength &&
+        ((freeHand.x > otherHand.x && handHold.x > otherHand.x + 60) || (freeHand.x < otherHand.x && handHold.x < otherHand.x - 60)) &&
+        dist(handHold, otherHand) < climber.armLength * 2) {
       acc = handHold;
     }
     return acc;
@@ -253,7 +256,10 @@ function releaseHandHold(releasedLetter) {
 }
 
 function checkGameOver() {
-  if (start && hands.filter(function(hand) { return !hand.grip; }).length == 2) {
+  if (start && hands.filter(function(hand, i) {
+      // return hand.start && dist(hand, climberBody[i]) > 0 ;
+      return climberBody[i].start && dist(hand, climberBody[i]) > 0 ;
+    }).length == 2) {
     pause = true;
     gameOver = true;
   }
@@ -287,19 +293,6 @@ function drawGameWin() {
   ctx.fillText("You Win!", 80, -80);
   ctx.font = "bold 22px arial";
   ctx.fillText("Press 'space' to play again", 100, -40);
-}
-
-function drawInstructions() {
-  ctx.globalAlpha = 0.4;
-  ctx.fillStyle = "#fff";
-  ctx.fillRect(0, wallHeight, canvasWidth, 400);
-  ctx.fillStyle = "#000";
-  ctx.globalAlpha = 1;
-  ctx.font = "bold 22px arial";
-  ctx.fillText("How to play:", 160, wallHeight + 40);
-  ctx.font = "bold 18px arial";
-  var instructions = "Climb the wall by grabbing a handhold within reach by holding down the key matching the handhold's letter.  Don't let go with both hands at the same time!";
-  wrapText(instructions, 30, wallHeight + 80, canvasWidth - 50, 25);
 }
 
 function updateGrips(dt) {
@@ -347,8 +340,6 @@ function updateWorld(dt) {
     vOffset -= scrollSpeed;
   }
 
-
-
   if(gameWin) {
     var scaleFactor = canvasHeight * 0.9 / wallHeight;
     vOffset = Math.max(100, vOffset - dt * 10 / 1000);
@@ -368,15 +359,23 @@ function drawWorld() {
 
   drawWall();
   hands.forEach(drawHand);
-  drawInstructions();
   if(gameWin) { drawGameWin(); }
+
+  ctx.globalAlpha = 1;
+
+  if(gameOver) {
+    drop += 10;
+    ctx.translate(0, drop);
+  }
   climber.draw();
 
   ctx.restore();
 
   // outside of global transform
   drawTime();
-  if(gameOver) { drawGameOver(); }
+  if(gameOver) {
+    drawGameOver();
+  }
 }
 
 function loop(time) {
@@ -402,6 +401,7 @@ function init() {
   gameWin = false;
   pause = false;
   start = false;
+  drop = 0;
 
   hands[0].x = canvasWidth / 2 - 100;
   hands[0].y = wallHeight;
