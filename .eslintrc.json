@@ -1,0 +1,25 @@
+{
+    "rules": {
+        "indent": [
+            1,
+            2
+        ],
+        "quotes": [
+            1,
+            "single"
+        ],
+        "linebreak-style": [
+            1,
+            "unix"
+        ],
+        "semi": [
+            1,
+            "always"
+        ]
+    },
+    "env": {
+        "node": true,
+        "browser": true
+    },
+    "extends": "eslint:recommended"
+}

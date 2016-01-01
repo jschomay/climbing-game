@@ -1,9 +1,53 @@
+var robotAtlas = {
+  head: {
+    x: 146,
+    y: 4,
+    w: 82,
+    h: 88,
+    cx: 41,
+    cy: 68
+  },
+  torso: {
+    x: 0,
+    y: 66,
+    w: 146,
+    h: 152,
+    cx: 73,
+    cy: 30
+  },
+  upperArm: {
+    x: 0,
+    y: 0,
+    w: 116,
+    h: 66,
+    cx: 0,
+    cy: 34
+  },
+  foreArm: {
+    x: 147,
+    y: 158,
+    w: 89,
+    h: 51,
+    cx: 3,
+    cy: 26
+  },
+  hand: {
+    x: 180,
+    y: 98,
+    w: 46,
+    h: 59,
+    cx: 23,
+    cy: 28
+  }
+};
+
+
 var climber = (function() {
-  var jointLength = 80;
+  var jointLength = 100;
   var armLength = jointLength * 2;
   var theta1 = 0;
   var leftArm, rightArm;
-  var reachSpeed = 4;
+  var reachSpeed = 5;
 
   function init(hands) {
     leftArm = {
@@ -14,7 +58,7 @@ var climber = (function() {
     };
     rightArm = {
       target: {x: hands[1].x + 0, y: hands[1].y + 0},
-      start: {x: hands[1].x - 50, y: hands[1].y + 50},
+      start: {x: hands[1].x - 60, y: hands[1].y + 50},
       mid: {x: hands[1].x + 0, y: hands[1].y + 50},
       end: {x: hands[1].x + 0, y: hands[1].y + 0}
     };
@@ -115,48 +159,43 @@ var climber = (function() {
   }
 
   function draw() {
-    // Draw arms
-    drawArm(leftArm);
-    drawArm(rightArm);
-
-    // Draw head
-    ctx.beginPath();
-    ctx.arc(leftArm.start.x + 50, leftArm.start.y - 20, jointLength / 3, 0, Math.PI*2);
-    // Draw body
-    ctx.fillStyle = "rgba(0,0,0,0.8)";
-    ctx.fill();
-    ctx.fillRect(leftArm.start.x, leftArm.start.y, 100, 100);
+    drawArm('left');
+    drawArm('right');
+    drawPart('head', {x: leftArm.start.x + 35, y: leftArm.start.y - 25});
+    drawPart('torso', {x: leftArm.start.x + 45, y: leftArm.start.y - 10});
   }
 
-  function drawArm(joints) {
-    ctx.beginPath();
-    ctx.moveTo( joints.start.x, joints.start.y );
-    ctx.lineTo( joints.mid.x, joints.mid.y );
-    ctx.lineTo( joints.end.x, joints.end.y );
-    ctx.strokeStyle = "rgba(0,0,0,1)";
-    ctx.lineJoin="round";
-    ctx.lineWidth = 10;
-    ctx.stroke();
+  function drawArm(side) {
+    var joints = side === 'right' ? rightArm : leftArm;
+    var matchingHand = side === 'right' ? hands[1] : hands[0];
+    var rotateDirection = side === 'right' ? 1 : -1;
+    var upperArmRotation = Math.atan2((joints.mid.y - joints.start.y) , (joints.mid.x - joints.start.x));
+    var foreArmRotation = Math.atan2((joints.end.y - joints.mid.y) , (joints.end.x - joints.mid.x));
+    var handX = joints.mid.x + (joints.end.x - joints.mid.x) * jointLength * 0.8 / jointLength;
+    var handY = joints.mid.y + (joints.end.y - joints.mid.y) * jointLength * 0.8 / jointLength;
+    var handClench = dist(joints.end, matchingHand) < 5 ? 0.9 : 1;
 
-    ctx.beginPath();
-    ctx.arc( joints.start.x, joints.start.y, 10, 0, Math.PI*2 );
-    ctx.fillStyle = "rgba(255,0,0,0.5)";
-    ctx.fill();
+    drawPart('hand', {x: handX, y: handY}, Math.PI / 2, {x: handClench * 1, y: handClench * rotateDirection});
+    drawPart('foreArm', {x: joints.mid.x, y: joints.mid.y}, foreArmRotation, {x: 1, y: rotateDirection});
+    drawPart('upperArm', {x: joints.start.x, y: joints.start.y}, upperArmRotation, {x: 1, y: rotateDirection});
+}
 
-    ctx.beginPath();
-    ctx.arc( joints.mid.x, joints.mid.y, 10, 0, Math.PI*2 );
-    ctx.fillStyle = "rgba(0,255,0,0.5)";
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.arc( joints.end.x, joints.end.y, 15, 0, Math.PI*2 );
-    ctx.fillStyle = "rgba(0,0,255,0.5)";
-    ctx.fill();
+  function drawPart(part, at, rotation, scale) {
+    scale = scale || {x:1, y:1};
+    var source = robotAtlas[part];
+    ctx.save();
+    ctx.translate(at.x, at.y);
+    ctx.rotate(rotation);
+    ctx.scale(scale.x, scale.y);
+    ctx.translate(-source.cx, -source.cy);
+    ctx.drawImage(robotSprites, source.x*2, source.y*2, source.w*2, source.h*2, 0, 0, source.w, source.h);
+    ctx.restore();
   }
 
   return {
     init: init,
     draw: draw,
-    update: update
+    update: update,
+    armLength: armLength
   };
 })();

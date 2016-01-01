@@ -21,6 +21,7 @@ var runningTime;
 var gameOver;
 var gameWin;
 var climberBody;
+var robotSprites;
 
 function shuffle(o){
   for(var j, x, i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
@@ -229,9 +230,7 @@ function chooseHandHold(chosenHandHoldLetter) {
   function isValidHandHold(acc, handHold) {
     if (acc) { return acc; }
     if (handHold.name === chosenHandHoldLetter &&
-        handHold.y <= freeHand.y + 30 &&
-        dist(handHold, freeHand) < 180 &&
-        dist(handHold, otherHand) < 250) {
+        dist(handHold, otherHand) < climber.armLength * 1.5) {
       acc = handHold;
     }
     return acc;
@@ -415,53 +414,48 @@ function init() {
   climberBody = climber.init(hands);
 }
 
+// keep things sharp on retina screens
+function enhanceContext(canvas, context) {
+  var ratio = window.devicePixelRatio || 1,
+      width = canvas.width,
+      height = canvas.height;
 
-// preload texture
-var img = new Image();
-img.src ='rocks.jpg';
-img.onload = function(){
-  rockTexture = ctx.createPattern(img,'repeat');
+  if (ratio > 1) {
+    canvas.width = width * ratio;
+    canvas.height = height * ratio;
+    canvas.style.width = width + 'px';
+    canvas.style.height = height + 'px';
+    context.scale(ratio, ratio);
+  }
+}
+enhanceContext(canvas, ctx);
+
+// preload textures
+var imagesToLoad = [
+  'assets/images/rocks.jpg',
+  'assets/images/robot-sprites.png'
+];
+var numImagesLoaded = 0;
+var loadedImages = imagesToLoad.map(loadImage);
+
+function loadImage(path) {
+  var img = new Image();
+  img.src = path;
+  img.onload = function() {
+    numImagesLoaded++;
+    if(numImagesLoaded === imagesToLoad.length) {
+      ready();
+    }
+  };
+  return img;
+}
+
+function ready(){
+  rockTexture = ctx.createPattern(loadedImages[0],'repeat');
+  robotSprites = loadedImages[1];
 
   // kick off
   init();
   bindKeys();
   loop(0);
-};
-
-
-/*
-todo
- 
-- map editor
-  - switch modes/ second page
-  - click to place a handhold
-  - set size and scale to fit
-  - save as level
-
-- add score?
-  - what to award? (vertical reach, speed, l/r/l/r, golf style score, grips with difficulty settings)
-
-- add character
-  - human or robot-like?  With legs?
-  - http://jsdo.it/j_s/SO6b for IK
-  - (auto-animate legs?)
-
-- animations when losing grip
-  - dust/falling rocks
-    - particle generator
-  - character arm drops
-
-- 2 player race to the top
-  - on same keyboard?
-  - networked
-    - using websockets and server
-    - "rooms"
-    - could fit 3 or 4 climbers
-  - swipe at the other player to knock one of their hands free
-
-- Start menu with title
-
-
-Notes:
-- Reach can equal arm length plus unextended reach of highest leg
- */
+}
