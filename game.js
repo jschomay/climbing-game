@@ -1,4 +1,6 @@
 var canvas = document.getElementById('game');
+canvas.width = window.innerWidth * 2 / 3;
+canvas.height = window.innerHeight;
 var ctx = canvas.getContext('2d');
 var lastTick, dt;
 var canvasWidth = canvas.width;
@@ -141,21 +143,21 @@ function drawHandHold(handHold) {
 
 function buildWall() {
   var letters = [ 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
-  var difficulties = [1, 1, 1, 0.6, 0.6, 0.4, 0];
+  var difficulties = [1, 1, 1, 0.6, 0.6, 0.4, 0, 0];
   var shuffledHandHoldNames = shuffle(letters);
-  wallHeight = canvasHeight * 2;
+  wallHeight = canvasHeight * 4;
   var x;
-  var y = 80;
+  var y = 0;
   var i = 0;
   var xOffset;
   var yOffset;
-  while (y < wallHeight - 20) {
+  while (y < wallHeight + 100) {
     x = 30;
     while (x < canvasWidth) {
-      xOffset = randomBetween(-20, 20);
-      yOffset = randomBetween(-50, 50);
+      xOffset = randomBetween(-30, 30);
+      yOffset = randomBetween(-60, 60);
       addHandHold(shuffledHandHoldNames[i], x + xOffset, y + yOffset, difficulties[randomBetween(0, difficulties.length - 1)]);
-      x += 70;
+      x += 120;
       i += 1;
       if (i >= shuffledHandHoldNames.length) {
         i = 0;
@@ -167,7 +169,7 @@ function buildWall() {
 
 function drawHand(hand) {
   if(!hand.start){ return; }
-  var r = 35;
+  var r = 45;
   var handBias = hand.side == "right" ? 3 : -3;
 
   ctx.save();
@@ -176,10 +178,10 @@ function drawHand(hand) {
   // climbing path
   ctx.save();
   ctx.beginPath();
-  ctx.lineWidth = 3;
+  ctx.lineWidth = 8;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
-  ctx.setLineDash([10,5]);
+  ctx.setLineDash([19,19]);
   ctx.globalAlpha = 0.5;
   ctx.moveTo(hand.path[0].x, hand.path[0].y);
   hand.path.slice(1).forEach(function(p) {
@@ -232,7 +234,7 @@ function chooseHandHold(chosenHandHoldLetter) {
     if (acc) { return acc; }
     if (handHold.name === chosenHandHoldLetter &&
         otherHand.y - handHold.y < climber.armLength &&
-        ((freeHand.x > otherHand.x && handHold.x > otherHand.x + 60) || (freeHand.x < otherHand.x && handHold.x < otherHand.x - 60)) &&
+        ((freeHand.x > otherHand.x && handHold.x > otherHand.x + 30) || (freeHand.x < otherHand.x && handHold.x < otherHand.x - 30)) &&
         dist(handHold, otherHand) < climber.armLength * 2) {
       acc = handHold;
     }
@@ -257,7 +259,6 @@ function releaseHandHold(releasedLetter) {
 
 function checkGameOver() {
   if (start && hands.filter(function(hand, i) {
-      // return hand.start && dist(hand, climberBody[i]) > 0 ;
       return climberBody[i].start && dist(hand, climberBody[i]) > 0 ;
     }).length == 2) {
     pause = true;
@@ -267,13 +268,13 @@ function checkGameOver() {
 function drawGameOver() {
   ctx.globalAlpha = 0.4;
   ctx.fillStyle = "#fff";
-  ctx.fillRect(0, canvasWidth / 2, canvasWidth, 150);
+  ctx.fillRect(0, canvasHeight / 2 - 70, canvasWidth, 150);
   ctx.fillStyle = "#000";
   ctx.font = "bold 72px arial";
   ctx.globalAlpha = 1;
-  ctx.fillText("Game Over!", 20, 300);
+  ctx.fillText("Game Over!", canvasWidth / 2 - 200, canvasHeight / 2 + 10);
   ctx.font = "bold 22px arial";
-  ctx.fillText("Press 'space' to play again", 100, 340);
+  ctx.fillText("Press 'space' to play again", canvasWidth / 2 - 120, canvasHeight / 2 + 50);
 }
 
 function checkGameWin() {
@@ -290,9 +291,9 @@ function drawGameWin() {
   ctx.fillStyle = "#000";
   ctx.globalAlpha = 1;
   ctx.font = "bold 72px arial";
-  ctx.fillText("You Win!", 80, -80);
+  ctx.fillText("You Win!", canvasWidth / 2 - 160, -80);
   ctx.font = "bold 22px arial";
-  ctx.fillText("Press 'space' to play again", 100, -40);
+  ctx.fillText("Press 'space' to play again", canvasWidth / 2 - 140, -40);
 }
 
 function updateGrips(dt) {
@@ -341,7 +342,7 @@ function updateWorld(dt) {
   }
 
   if(gameWin) {
-    var scaleFactor = canvasHeight * 0.9 / wallHeight;
+    var scaleFactor = canvasHeight * 0.8 / wallHeight;
     vOffset = Math.max(100, vOffset - dt * 10 / 1000);
     scale = Math.max(scaleFactor, scale - dt * 0.1 / 1000);
   }

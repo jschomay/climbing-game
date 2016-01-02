@@ -101,7 +101,7 @@ var climber = (function() {
   }
 
   function reachTowardsTarget(activeArm, activeTarget, passiveArm, passiveTarget, bendDirection, dt) {
-    if (dist(activeArm.end, activeTarget) === 0) {
+    if (dist(activeArm.end, activeTarget) < 1) {
       activeArm.end.start = true;
     }
     var activeTarget_ = {
