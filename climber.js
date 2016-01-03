@@ -146,10 +146,10 @@ var climber = (function() {
       };
       dx = (gravityTarget.x - activeArm.start.x) / dist(gravityTarget, activeArm.start);
       dy = (gravityTarget.y - activeArm.start.y) / dist(gravityTarget, activeArm.start);
-      activeArm.start.x += dx * 1 * 16 / dt;
+      activeArm.start.x += dx * 2 * 16 / dt;
       activeArm.start.y += dy * 1 * 16 / dt;
-      activeArm.mid.x += dx * 1 * 16 / dt;
-      activeArm.mid.y += dx * 1 * 16 / dt;
+      activeArm.mid.x += dx * 2 * 16 / dt;
+      activeArm.mid.y += dy * 1 * 16 / dt;
     }
 
     // drag passive arm's start along too to keep everything aligned (it will auto-retarget the next update call)
