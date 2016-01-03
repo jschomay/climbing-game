@@ -281,7 +281,8 @@ function drawGameOver() {
 }
 
 function checkGameWin() {
-  if (climberBody.filter(function(hand) { return hand.y < finishLine; }).length) {
+  // if (climberBody.filter(function(hand) { return hand.y < finishLine; }).length) {
+  if (climberBody.filter(function(hand, i) {  return hand.y < finishLine && dist(hand, hands[i]) < 1; }).length) {
     pause = true;
     gameWin = true;
   }
