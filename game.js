@@ -1,6 +1,7 @@
 var canvas = document.getElementById('game');
-canvas.width = window.innerWidth * 2 / 3;
-canvas.height = window.innerHeight;
+// canvas must be even or bugs happen in the ik math
+canvas.width = makeEven(window.innerWidth * 2 / 3);
+canvas.height = makeEven(window.innerHeight);
 var ctx = canvas.getContext('2d');
 var lastTick, dt;
 var canvasWidth = canvas.width;
@@ -25,6 +26,8 @@ var gameWin;
 var climberBody;
 var robotSprites;
 var drop;
+
+function makeEven(n) { return n + n % 2; }
 
 function shuffle(o){
   for(var j, x, i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
