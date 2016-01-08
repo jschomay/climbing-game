@@ -4,8 +4,8 @@ canvas.width = makeEven(window.innerWidth * 2 / 3);
 canvas.height = makeEven(window.innerHeight);
 var ctx = canvas.getContext('2d');
 var lastTick, dt;
-var canvasWidth = canvas.width;
-var canvasHeight = canvas.height;
+var canvasWidth;
+var canvasHeight;
 var rockTexture;
 var vOffset;
 var hOffset;
@@ -262,7 +262,7 @@ function releaseHandHold(releasedLetter) {
 
 function checkGameOver() {
   if (start && hands.filter(function(hand, i) {
-      return climberBody[i].start && dist(hand, climberBody[i]) > 0 ;
+      return climberBody[i].start && dist(hand, climberBody[i]) > 1 ;
     }).length == 2) {
     pause = true;
     gameOver = true;
@@ -431,6 +431,9 @@ function enhanceContext(canvas, context) {
     canvas.style.width = width + 'px';
     canvas.style.height = height + 'px';
     context.scale(ratio, ratio);
+
+    canvasWidth = makeEven(canvas.width / ratio);
+    canvasHeight = makeEven(canvas.height / ratio);
   }
 }
 enhanceContext(canvas, ctx);
