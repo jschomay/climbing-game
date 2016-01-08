@@ -116,6 +116,10 @@ var climber = (function() {
       activeTarget_.y = activeArm.start.y - 20;
       reachSpeed_ /= 2;
     }
+    if(activeTarget.start && !activeTarget.grip && !activeTarget.released && !activeTarget.dropped) {
+      activeTarget.dropped = true;
+      play('fallingrock');
+    }
 
     // progressively move towards target
     var reachLength = dist(activeTarget_, activeArm.end) || 1;
@@ -132,6 +136,12 @@ var climber = (function() {
 
     var activeArmExtention = dist(activeArm.end, activeArm.start);
     var passiveArmExtention = dist(passiveArm.end, passiveArm.start);
+
+    if(!activeTarget.landed && dist(activeTarget, activeArm.end) < 1) {
+      activeTarget.landed = true;
+      play('Grab' + randomBetween(1,3));
+      stop('Servo');
+    }
 
     //flex
     if(activeTarget.grip && passiveTarget.grip && passiveArm.start.y > passiveArm.end.y + 90 && activeArm.start.y > activeArm.end.y + 90 && activeArmExtention < armLength && passiveArmExtention < armLength) {
@@ -150,6 +160,8 @@ var climber = (function() {
       activeArm.start.y += dy * 1 * 16 / dt;
       activeArm.mid.x += dx * 2 * 16 / dt;
       activeArm.mid.y += dy * 1 * 16 / dt;
+    } else if (!activeTarget.grip) {
+      fadeOut('Servo');
     }
 
     // drag passive arm's start along too to keep everything aligned (it will auto-retarget the next update call)

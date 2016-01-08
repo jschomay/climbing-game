@@ -217,12 +217,18 @@ function drawHand(hand) {
 
 function grab(hand, handHold) {
   hand.grip = 1;
+  hand.landed = false;
+  hand.dropped = false;
+  hand.released = false;
   hand.handHold = handHold;
   if(!hand.path.length || hand.path[hand.path.length - 1].x !== handHold.x && hand.path[hand.path.length - 1].y !== handHold.y) {
     hand.path.push({x: handHold.x, y: handHold.y});
   }
   hand.x = handHold.x;
   hand.y = handHold.y;
+
+  play('Target');
+  play('Servo');
 }
 
 function chooseHandHold(chosenHandHoldLetter) {
@@ -256,6 +262,8 @@ function releaseHandHold(releasedLetter) {
   hands.map(function(hand) {
     if(hand.start && hand.handHold.name && hand.handHold.name.toLowerCase() === releasedLetter) {
       hand.grip = 0;
+      hand.released = true;
+      play('Servo');
     }
   });
 }
@@ -266,6 +274,7 @@ function checkGameOver() {
     }).length == 2) {
     pause = true;
     gameOver = true;
+    play('fallingrock');
   }
 }
 function drawGameOver() {
@@ -281,7 +290,6 @@ function drawGameOver() {
 }
 
 function checkGameWin() {
-  // if (climberBody.filter(function(hand) { return hand.y < finishLine; }).length) {
   if (climberBody.filter(function(hand, i) {  return hand.y < finishLine && dist(hand, hands[i]) < 1; }).length) {
     pause = true;
     gameWin = true;
@@ -371,6 +379,11 @@ function drawWorld() {
   if(gameOver) {
     drop += 10;
     ctx.translate(0, drop);
+    if(drop < 200) {
+      play('Servo');
+    } else {
+      fadeOut('Servo');
+    }
   }
   climber.draw();
 
@@ -443,24 +456,68 @@ var imagesToLoad = [
   'assets/images/rocks.jpg',
   'assets/images/robot-sprites.png'
 ];
-var numImagesLoaded = 0;
+var soundsToLoad = [
+  'Grab1',
+  'Grab2',
+  'Grab3',
+  'Servo',
+  'Target',
+  'wind',
+  'fallingrock'
+];
 var loadedImages = imagesToLoad.map(loadImage);
+var loadedSounds = soundsToLoad.map(loadSound);
+
+var numAssetsLoaded = 0;
+function assetLoaded() {
+  numAssetsLoaded++;
+  if(numAssetsLoaded === imagesToLoad.length + soundsToLoad.length) {
+    ready();
+  }
+}
 
 function loadImage(path) {
   var img = new Image();
   img.src = path;
-  img.onload = function() {
-    numImagesLoaded++;
-    if(numImagesLoaded === imagesToLoad.length) {
-      ready();
-    }
-  };
+  img.onload = assetLoaded;
   return img;
+}
+
+function loadSound(name) {
+  return new Howl({
+    urls: [name+'.ogg'].map(function(p) { return 'assets/sounds/' + p; }),
+    onload: assetLoaded
+  });
+}
+
+function play(name) {
+  var i = soundsToLoad.indexOf(name);
+  loadedSounds[i].play();
+}
+
+function stop(name) {
+  var i = soundsToLoad.indexOf(name);
+  loadedSounds[i].stop();
+}
+
+function fadeOut(name) {
+  var i = soundsToLoad.indexOf(name);
+  loadedSounds[i].fadeOut();
+}
+
+function setSoundProp(name, prop, value) {
+  var i = soundsToLoad.indexOf(name);
+  loadedSounds[i]['_'+prop] = value;
 }
 
 function ready(){
   rockTexture = ctx.createPattern(loadedImages[0],'repeat');
   robotSprites = loadedImages[1];
+
+  setSoundProp('Target', 'volume', 0.3);
+  setSoundProp('wind', 'loop', true);
+  setSoundProp('wind', 'volume', 0.6);
+  play('wind');
 
   // kick off
   init();
