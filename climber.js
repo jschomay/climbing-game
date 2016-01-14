@@ -182,7 +182,7 @@ var climber = (function() {
   function draw() {
     drawArm('left');
     drawArm('right');
-    drawPart('head', {x: leftArm.start.x + 35, y: leftArm.start.y - 25});
+    drawPart('head', {x: leftArm.start.x + 45, y: leftArm.start.y - 25});
     drawPart('torso', {x: leftArm.start.x + 45, y: leftArm.start.y - 10});
   }
 

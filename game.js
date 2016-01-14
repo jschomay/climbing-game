@@ -444,10 +444,10 @@ function enhanceContext(canvas, context) {
     canvas.style.width = width + 'px';
     canvas.style.height = height + 'px';
     context.scale(ratio, ratio);
-
-    canvasWidth = makeEven(canvas.width / ratio);
-    canvasHeight = makeEven(canvas.height / ratio);
   }
+
+  canvasWidth = makeEven(canvas.width / ratio);
+  canvasHeight = makeEven(canvas.height / ratio);
 }
 enhanceContext(canvas, ctx);
 
