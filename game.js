@@ -235,27 +235,28 @@ function chooseHandHold(chosenHandHoldLetter) {
   // only proceed if the matching grip has been released
   if (hands.filter(function(hand) { return hand.grip && hand.handHold.name === chosenHandHoldLetter; }).length) { return; }
 
-  var freeHand = hands.filter(function(hand) { return !hand.grip; })[0];
-  if (!freeHand) { return; }
-  var otherHand = hands.filter(function(hand) { return hand !== freeHand; })[0];
+  hands.filter(function(hand) { return !hand.grip; }).forEach(function(freeHand){
+    if (!freeHand) { return; }
+    var otherHand = hands.filter(function(hand) { return hand !== freeHand; })[0];
 
-  function isValidHandHold(acc, handHold) {
-    if (acc) { return acc; }
-    if (handHold.name === chosenHandHoldLetter &&
-        otherHand.y - handHold.y < climber.armLength &&
-        ((freeHand.x > otherHand.x && handHold.x > otherHand.x + 30) || (freeHand.x < otherHand.x && handHold.x < otherHand.x - 30)) &&
-        dist(handHold, otherHand) < climber.armLength * 2) {
-      acc = handHold;
+    function isValidHandHold(acc, handHold) {
+      if (acc) { return acc; }
+      if (handHold.name === chosenHandHoldLetter &&
+          otherHand.y - handHold.y < climber.armLength &&
+          ((freeHand.x > otherHand.x && handHold.x > otherHand.x + 30) || (freeHand.x < otherHand.x && handHold.x < otherHand.x - 30)) &&
+          dist(handHold, otherHand) < climber.armLength * 2) {
+        acc = handHold;
+      }
+      return acc;
     }
-    return acc;
-  }
 
-  var handHold = wall.reduce(isValidHandHold, null);
-  if (handHold) {
-    freeHand.start = true;
-    start = true;
-    grab(freeHand, handHold);
-  }
+    var handHold = wall.reduce(isValidHandHold, null);
+    if (handHold) {
+      freeHand.start = true;
+      start = true;
+      grab(freeHand, handHold);
+    }
+  });
 }
 
 function releaseHandHold(releasedLetter) {
