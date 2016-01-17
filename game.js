@@ -317,17 +317,27 @@ function updateGrips(dt) {
   });
 }
 
+function pad(n) { return (n < 10) ? ("0" + n) : n; }
+
 function drawTime() {
   ctx.save();
-  ctx.fillStyle = "#000";
-  ctx.font = "18px arial";
-  ctx.fillText(Math.round(runningTime/1000), 10, 15);
+  ctx.fillStyle = "#fff";
+  ctx.strokeStyle = "#000";
+  ctx.lineWidth = 3;
+  ctx.font = "bold 50px arial";
+  var minutes = Math.floor(runningTime/1000/60 % 60);
+  var seconds = (runningTime/1000 % 60).toFixed(1);
+  var timeDisplay = pad(minutes) + ':' + pad(seconds);
+  ctx.fillText(timeDisplay, 10, 45);
+  ctx.strokeText(timeDisplay, 10, 45);
   ctx.restore();
 }
 
 function updateWorld(dt) {
-  if (!pause) {
+  if (!pause && start) {
     runningTime += dt;
+  }
+  if (!pause) {
     checkGameWin();
     checkGameOver();
 
