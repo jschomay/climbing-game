@@ -334,6 +334,21 @@ function drawTime() {
   ctx.restore();
 }
 
+function drawHeightClimbed() {
+  ctx.save();
+  ctx.fillStyle = "#fff";
+  ctx.strokeStyle = "#000";
+  ctx.lineWidth = 2;
+  ctx.font = "bold 25px arial";
+  var highestGrip = climberBody.reduce(function(a,b){ return Math.min(a.y, b.y); });
+  var climbedHeight = Math.max(Math.ceil((wallHeight - highestGrip) / 70), 0);
+  var totalHeight = Math.floor(wallHeight / 70);
+  var heightDisplay = climbedHeight + 'ft / ' + totalHeight + 'ft'
+  ctx.fillText(heightDisplay, 10, 75);
+  ctx.strokeText(heightDisplay, 10, 75);
+  ctx.restore();
+}
+
 function updateWorld(dt) {
   if (!pause && start) {
     runningTime += dt;
@@ -402,6 +417,7 @@ function drawWorld() {
 
   // outside of global transform
   drawTime();
+  drawHeightClimbed();
   if(gameOver) {
     drawGameOver();
   }
