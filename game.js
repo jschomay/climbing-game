@@ -21,6 +21,7 @@ var keysDown;
 var justPressed;
 var justReleased;
 var runningTime;
+var countDown;
 var gameOver;
 var gameWin;
 var climberBody;
@@ -253,7 +254,6 @@ function chooseHandHold(chosenHandHoldLetter) {
     var handHold = wall.reduce(isValidHandHold, null);
     if (handHold) {
       freeHand.start = true;
-      start = true;
       grab(freeHand, handHold);
     }
   });
@@ -278,6 +278,7 @@ function checkGameOver() {
     play('fallingrock');
   }
 }
+
 function drawGameOver() {
   ctx.globalAlpha = 0.4;
   ctx.fillStyle = "#fff";
@@ -318,6 +319,29 @@ function updateGrips(dt) {
   });
 }
 
+function drawCountdown() {
+  var text;
+  if(countDown > 500 && countDown < 1500) {
+    text = "Ready...";
+  } else if(countDown > 2000 && countDown < 3000) {
+    text = "Set...";
+  } else if(countDown > 3500 && countDown < 4000) {
+    text = "GO!";
+    start = true;
+  } else {
+    return
+  }
+
+  ctx.globalAlpha = 0.4;
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, canvasHeight / 2 - 170, canvasWidth, 150);
+  ctx.fillStyle = "#000";
+  ctx.font = "bold 72px arial";
+  ctx.globalAlpha = 1;
+  ctx.fillText(text, canvasWidth / 2 - 100, canvasHeight / 2 - 70);
+}
+
+
 function pad(n) { return (n < 10) ? ("0" + n) : n; }
 
 function drawTime() {
@@ -350,10 +374,11 @@ function drawHeightClimbed() {
 }
 
 function updateWorld(dt) {
+  countDown += dt;
+
   if (!pause && start) {
     runningTime += dt;
-  }
-  if (!pause) {
+
     checkGameWin();
     checkGameOver();
 
@@ -368,7 +393,6 @@ function updateWorld(dt) {
 
     updateGrips(dt);
 
-    climber.update(hands[0], hands[1], dt);
 
     var vOffsetTarget = hands.reduce(function(a,b){ return a.y + b.y; }) / 2;
     var maxScrollSpeed = 20;
@@ -378,6 +402,8 @@ function updateWorld(dt) {
     scrollSpeed = Math.max(0, scrollSpeed - (dt * 15) / 1000);
     vOffset -= scrollSpeed;
   }
+
+  climber.update(hands[0], hands[1], dt);
 
   if(gameWin) {
     var scaleFactor = canvasHeight * 0.8 / wallHeight;
@@ -417,6 +443,7 @@ function drawWorld() {
 
   // outside of global transform
   drawTime();
+  drawCountdown();
   drawHeightClimbed();
   if(gameOver) {
     drawGameOver();
@@ -442,10 +469,11 @@ function init() {
   justPressed = null;
   justReleased = null;
   runningTime = 0;
+  countDown = 0;
   gameOver = false;
   gameWin = false;
-  pause = false;
   start = false;
+  pause = false;
   drop = 0;
 
   hands[0].x = canvasWidth / 2 - 100;
