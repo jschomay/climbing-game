@@ -1,9 +1,15 @@
+var onePlayerStartButton = document.getElementById('one-player');
+var startScreen = document.getElementById('start-screen');
+var title = document.getElementById('title');
+var loading = document.getElementById('loading');
+var main = document.getElementById('main');
 var canvas = document.getElementById('game');
 // canvas must be even or bugs happen in the ik math
-canvas.width = makeEven(window.innerWidth * 2 / 3);
+canvas.width = makeEven(window.innerWidth);
 canvas.height = makeEven(window.innerHeight);
 var ctx = canvas.getContext('2d');
 var lastTick, dt;
+var doCountdown;
 var canvasWidth;
 var canvasHeight;
 var rockTexture;
@@ -27,6 +33,8 @@ var gameWin;
 var climberBody;
 var robotSprites;
 var drop;
+var climber;
+var Howl;
 
 function makeEven(n) { return n + n % 2; }
 
@@ -107,7 +115,7 @@ function drawWall() {
   ctx.globalAlpha = 0.65;
   ctx.save();
   ctx.beginPath();
-  ctx.strokeStyle = "black";
+  ctx.strokeStyle = 'black';
   ctx.lineWidth = 11;
   ctx.moveTo(0, finishLine);
   ctx.lineTo(canvasWidth, finishLine);
@@ -115,7 +123,7 @@ function drawWall() {
   ctx.closePath();
 
   ctx.beginPath();
-  ctx.strokeStyle = "white";
+  ctx.strokeStyle = 'white';
   ctx.lineWidth = 5;
   ctx.setLineDash([30]);
   ctx.moveTo(0, finishLine - 3);
@@ -138,8 +146,8 @@ function drawWall() {
 function drawHandHold(handHold) {
   ctx.save();
   ctx.globalAlpha = 0.8;
-  ctx.fillStyle = "#ccc";
-  ctx.font = "bold " + 28 * handHold.difficulty + "px arial";
+  ctx.fillStyle = '#ccc';
+  ctx.font = 'bold ' + 28 * handHold.difficulty + 'px arial';
   ctx.fillText(handHold.name.toUpperCase(), handHold.x, handHold.y);
   ctx.restore();
 }
@@ -174,10 +182,10 @@ function buildWall() {
 function drawHand(hand) {
   if(!hand.start){ return; }
   var r = 45;
-  var handBias = hand.side == "right" ? 3 : -3;
+  var handBias = hand.side == 'right' ? 3 : -3;
 
   ctx.save();
-  ctx.strokeStyle = hand.side == "right" ? "red" : "blue";
+  ctx.strokeStyle = hand.side == 'right' ? 'red' : 'blue';
 
   // climbing path
   ctx.save();
@@ -271,8 +279,8 @@ function releaseHandHold(releasedLetter) {
 
 function checkGameOver() {
   if (start && hands.filter(function(hand, i) {
-      return climberBody[i].start && dist(hand, climberBody[i]) > 1 ;
-    }).length == 2) {
+    return climberBody[i].start && dist(hand, climberBody[i]) > 1 ;
+  }).length == 2) {
     pause = true;
     gameOver = true;
     play('fallingrock');
@@ -281,14 +289,14 @@ function checkGameOver() {
 
 function drawGameOver() {
   ctx.globalAlpha = 0.4;
-  ctx.fillStyle = "#fff";
+  ctx.fillStyle = '#fff';
   ctx.fillRect(0, canvasHeight / 2 - 70, canvasWidth, 150);
-  ctx.fillStyle = "#000";
-  ctx.font = "bold 72px arial";
+  ctx.fillStyle = '#000';
+  ctx.font = 'bold 72px arial';
   ctx.globalAlpha = 1;
-  ctx.fillText("Game Over!", canvasWidth / 2 - 200, canvasHeight / 2 + 10);
-  ctx.font = "bold 22px arial";
-  ctx.fillText("Press 'space' to play again", canvasWidth / 2 - 120, canvasHeight / 2 + 50);
+  ctx.fillText('Game Over!', canvasWidth / 2 - 200, canvasHeight / 2 + 10);
+  ctx.font = 'bold 22px arial';
+  ctx.fillText('Press "space" to play again', canvasWidth / 2 - 120, canvasHeight / 2 + 50);
 }
 
 function checkGameWin() {
@@ -300,14 +308,14 @@ function checkGameWin() {
 
 function drawGameWin() {
   ctx.globalAlpha = 0.4;
-  ctx.fillStyle = "#fff";
+  ctx.fillStyle = '#fff';
   ctx.fillRect(0, -160, canvasWidth, 150);
-  ctx.fillStyle = "#000";
+  ctx.fillStyle = '#000';
   ctx.globalAlpha = 1;
-  ctx.font = "bold 72px arial";
-  ctx.fillText("You Win!", canvasWidth / 2 - 160, -80);
-  ctx.font = "bold 22px arial";
-  ctx.fillText("Press 'space' to play again", canvasWidth / 2 - 140, -40);
+  ctx.font = 'bold 72px arial';
+  ctx.fillText('You Win!', canvasWidth / 2 - 160, -80);
+  ctx.font = 'bold 22px arial';
+  ctx.fillText('Press "space" to play again', canvasWidth / 2 - 140, -40);
 }
 
 function updateGrips(dt) {
@@ -321,35 +329,36 @@ function updateGrips(dt) {
 
 function drawCountdown() {
   var text;
-  if(countDown > 500 && countDown < 1500) {
-    text = "Ready...";
+  if (countDown > 500 && countDown < 1500) {
+    text = 'Ready...';
   } else if(countDown > 2000 && countDown < 3000) {
-    text = "Set...";
+    text = 'Set...';
   } else if(countDown > 3500 && countDown < 4000) {
-    text = "GO!";
+    text = 'GO!';
     start = true;
   } else {
-    return
+    return;
   }
 
+
   ctx.globalAlpha = 0.4;
-  ctx.fillStyle = "#fff";
+  ctx.fillStyle = '#fff';
   ctx.fillRect(0, canvasHeight / 2 - 170, canvasWidth, 150);
-  ctx.fillStyle = "#000";
-  ctx.font = "bold 72px arial";
+  ctx.fillStyle = '#000';
+  ctx.font = 'bold 72px arial';
   ctx.globalAlpha = 1;
   ctx.fillText(text, canvasWidth / 2 - 100, canvasHeight / 2 - 70);
 }
 
 
-function pad(n) { return (n < 10) ? ("0" + n) : n; }
+function pad(n) { return (n < 10) ? ('0' + n) : n; }
 
 function drawTime() {
   ctx.save();
-  ctx.fillStyle = "#fff";
-  ctx.strokeStyle = "#000";
+  ctx.fillStyle = '#fff';
+  ctx.strokeStyle = '#000';
   ctx.lineWidth = 3;
-  ctx.font = "bold 50px arial";
+  ctx.font = 'bold 50px arial';
   var minutes = Math.floor(runningTime/1000/60 % 60);
   var seconds = (runningTime/1000 % 60).toFixed(1);
   var timeDisplay = pad(minutes) + ':' + pad(seconds);
@@ -360,21 +369,27 @@ function drawTime() {
 
 function drawHeightClimbed() {
   ctx.save();
-  ctx.fillStyle = "#fff";
-  ctx.strokeStyle = "#000";
+  ctx.fillStyle = '#fff';
+  ctx.strokeStyle = '#000';
   ctx.lineWidth = 2;
-  ctx.font = "bold 25px arial";
+  ctx.font = 'bold 25px arial';
   var highestGrip = climberBody.reduce(function(a,b){ return Math.min(a.y, b.y); });
   var climbedHeight = Math.max(Math.ceil((wallHeight - highestGrip) / 70), 0);
   var totalHeight = Math.floor(wallHeight / 70);
-  var heightDisplay = climbedHeight + 'ft / ' + totalHeight + 'ft'
+  var heightDisplay = climbedHeight + 'ft / ' + totalHeight + 'ft';
   ctx.fillText(heightDisplay, 10, 75);
   ctx.strokeText(heightDisplay, 10, 75);
   ctx.restore();
 }
 
 function updateWorld(dt) {
-  countDown += dt;
+  if (doCountdown) {
+    countDown += dt;
+  } else {
+    // dt jumps from 0 to however long the browser has been running, then down to 16
+    // so it works as a good flag to only start the countdown when dt is at 16
+    doCountdown = dt;
+  }
 
   if (!pause && start) {
     runningTime += dt;
@@ -473,6 +488,7 @@ function init() {
   gameOver = false;
   gameWin = false;
   start = false;
+  doCountdown = false;
   pause = false;
   drop = 0;
 
@@ -490,8 +506,8 @@ function init() {
 // keep things sharp on retina screens
 function enhanceContext(canvas, context) {
   var ratio = window.devicePixelRatio || 1,
-      width = canvas.width,
-      height = canvas.height;
+    width = canvas.width,
+    height = canvas.height;
 
   if (ratio > 1) {
     canvas.width = width * ratio;
@@ -504,7 +520,6 @@ function enhanceContext(canvas, context) {
   canvasWidth = makeEven(canvas.width / ratio);
   canvasHeight = makeEven(canvas.height / ratio);
 }
-enhanceContext(canvas, ctx);
 
 // preload textures
 var imagesToLoad = [
@@ -527,7 +542,7 @@ var numAssetsLoaded = 0;
 function assetLoaded() {
   numAssetsLoaded++;
   if(numAssetsLoaded === imagesToLoad.length + soundsToLoad.length) {
-    ready();
+    loaded();
   }
 }
 
@@ -565,17 +580,35 @@ function setSoundProp(name, prop, value) {
   loadedSounds[i]['_'+prop] = value;
 }
 
-function ready(){
+function startGame() {
+  main.style.background = 'initial';
   rockTexture = ctx.createPattern(loadedImages[0],'repeat');
   robotSprites = loadedImages[1];
 
-  setSoundProp('Target', 'volume', 0.3);
-  setSoundProp('wind', 'loop', true);
-  setSoundProp('wind', 'volume', 0.6);
-  play('wind');
+  startScreen.style.display = 'none';
+  title.style.display = 'none';
+  canvas.style.display = 'block';
+  enhanceContext(canvas, ctx);
 
   // kick off
   init();
   bindKeys();
   loop(0);
 }
+
+function loaded() {
+  loading.style.display = 'none';
+  startScreen.style.display = 'block';
+
+  setSoundProp('Target', 'volume', 0.3);
+  setSoundProp('wind', 'loop', true);
+  setSoundProp('wind', 'volume', 0.6);
+
+  play('wind');
+}
+
+// bind start screen buttons
+onePlayerStartButton.onclick = function(e){
+  e.preventDefault();
+  startGame();
+};

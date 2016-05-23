@@ -1,11 +1,59 @@
+html, body, #main { height: 100%; }
+
 body {
   margin: 0;
   background: black;
 }
 
+#main {
+  background: url('assets/images/rocks.jpg');
+  background-size: contain;
+}
+
+#title {
+  text-align: center;
+  margin: 0;
+  padding: 20px;
+  color: white;
+  font-size: 80px;
+}
+
+#loading {
+  font-size: 50px;
+  color: white;
+  opacity: 0.8;
+  height: 50px;
+  margin: auto;
+  position: absolute;
+  text-align: center;
+  right: 0;
+  left: 0;
+  top: 0;
+  bottom: 0;
+}
+
 #game {
+  display: none;
   margin: auto;
   position: absolute;
   left: 0;
   right: 0;
+}
+
+#start-screen {
+  display: none;
+  color: white;
+  margin: auto;
+  position: absolute;
+  text-align: center;
+  right: 0;
+  left: 0;
+  padding: 100px 50px;
+  width: 66%;
+}
+
+#start-screen a {
+  color: white;
+  font-weight: bold;
+  font-size: 20px;
 }

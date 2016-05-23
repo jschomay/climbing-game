@@ -15,7 +15,8 @@
         "semi": [
             1,
             "always"
-        ]
+        ],
+        "no-unused-vars" : 0
     },
     "env": {
         "node": true,
