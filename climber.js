@@ -41,32 +41,35 @@ var robotAtlas = {
   }
 };
 
+function randomBetween(min,max) {
+  return Math.floor(Math.random()*(max-min+1)+min);
+}
+
 
 var climber = (function() {
   var jointLength = 100;
   var armLength = jointLength * 2;
   var theta1 = 0;
-  var leftArm, rightArm;
   var reachSpeed = 5;
 
   function init(hands) {
-    leftArm = {
+    var leftArm = {
       target: {x: hands[0].x + 0, y: hands[0].y + 0},
       start: {x: hands[0].x + 50, y: hands[0].y + 50},
       mid: {x: hands[0].x + 0,  y: hands[0].y + 50},
       end: {x: hands[0].x + 1, y: hands[0].y + 0}
     };
-    rightArm = {
+    var rightArm = {
       target: {x: hands[1].x + 0, y: hands[1].y + 0},
       start: {x: hands[1].x - 60, y: hands[1].y + 50},
       mid: {x: hands[1].x + 0, y: hands[1].y + 50},
       end: {x: hands[1].x + 1, y: hands[1].y + 0}
     };
-    return [leftArm.end, rightArm.end];
+    return [leftArm, rightArm];
   }
 
   function ik(joints, bendDirection) {
-    bhandendDirection = bendDirection || 1;
+    bendDirection = bendDirection || 1;
 
     var dx = joints.target.x - joints.start.x;
     var dy = joints.target.y - joints.start.y;
@@ -174,19 +177,22 @@ var climber = (function() {
     passiveArm.mid.y += ydiff;
   }
 
-  function update(leftTarget, rightTarget, dt) {
-    reachTowardsTarget(leftArm, leftTarget, rightArm, rightTarget, -1, dt);
-    reachTowardsTarget(rightArm, rightTarget, leftArm, leftTarget, 1, dt);
+  function update(climber, target, dt){ //leftTarget, rightTarget, dt) {
+    reachTowardsTarget(climber[0], target[0], climber[1], target[1], -1, dt);
+    reachTowardsTarget(climber[1], target[1], climber[0], target[0], 1, dt);
   }
 
-  function draw() {
-    drawArm('left');
-    drawArm('right');
-    drawPart('head', {x: leftArm.start.x + 45, y: leftArm.start.y - 25});
-    drawPart('torso', {x: leftArm.start.x + 45, y: leftArm.start.y - 10});
+  function draw(spriteSheet, climber, hands) {
+    var leftArm = climber[0];
+    drawArm(spriteSheet, climber, hands, 'left');
+    drawArm(spriteSheet, climber, hands, 'right');
+    drawPart(spriteSheet, 'head', {x: leftArm.start.x + 45, y: leftArm.start.y - 25});
+    drawPart(spriteSheet, 'torso', {x: leftArm.start.x + 45, y: leftArm.start.y - 10});
   }
 
-  function drawArm(side) {
+  function drawArm(spriteSheet, climber, hands, side) {
+    var leftArm = climber[0];
+    var rightArm = climber[1];
     var joints = side === 'right' ? rightArm : leftArm;
     var matchingHand = side === 'right' ? hands[1] : hands[0];
     var rotateDirection = side === 'right' ? 1 : -1;
@@ -196,12 +202,12 @@ var climber = (function() {
     var handY = joints.mid.y + (joints.end.y - joints.mid.y) * jointLength * 0.8 / jointLength;
     var handClench = dist(joints.end, matchingHand) < 5 ? 0.9 : 1;
 
-    drawPart('hand', {x: handX, y: handY}, Math.PI / 2, {x: handClench * 1, y: handClench * rotateDirection});
-    drawPart('foreArm', {x: joints.mid.x, y: joints.mid.y}, foreArmRotation, {x: 1, y: rotateDirection});
-    drawPart('upperArm', {x: joints.start.x, y: joints.start.y}, upperArmRotation, {x: 1, y: rotateDirection});
+    drawPart(spriteSheet, 'hand', {x: handX, y: handY}, Math.PI / 2, {x: handClench * 1, y: handClench * rotateDirection});
+    drawPart(spriteSheet, 'foreArm', {x: joints.mid.x, y: joints.mid.y}, foreArmRotation, {x: 1, y: rotateDirection});
+    drawPart(spriteSheet, 'upperArm', {x: joints.start.x, y: joints.start.y}, upperArmRotation, {x: 1, y: rotateDirection});
 }
 
-  function drawPart(part, at, rotation, scale) {
+  function drawPart(spriteSheet, part, at, rotation, scale) {
     scale = scale || {x:1, y:1};
     var source = robotAtlas[part];
     ctx.save();
@@ -209,7 +215,7 @@ var climber = (function() {
     ctx.rotate(rotation);
     ctx.scale(scale.x, scale.y);
     ctx.translate(-source.cx, -source.cy);
-    ctx.drawImage(robotSprites, source.x*2, source.y*2, source.w*2, source.h*2, 0, 0, source.w, source.h);
+    ctx.drawImage(spriteSheet, source.x*2, source.y*2, source.w*2, source.h*2, 0, 0, source.w, source.h);
     ctx.restore();
   }
 

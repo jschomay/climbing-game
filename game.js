@@ -1,13 +1,16 @@
-var onePlayerStartButton = document.getElementById('one-player');
+var onePlayerStartButton = document.getElementById('one-player-start');
+var twoPlayerStartButton = document.getElementById('two-player-start');
+var twoPlayerJoinButton = document.getElementById('two-player-join');
 var startScreen = document.getElementById('start-screen');
 var title = document.getElementById('title');
 var loading = document.getElementById('loading');
 var main = document.getElementById('main');
 var canvas = document.getElementById('game');
 // canvas must be even or bugs happen in the ik math
-canvas.width = makeEven(window.innerWidth);
-canvas.height = makeEven(window.innerHeight);
+canvas.width = 1200;
+canvas.height = 700;
 var ctx = canvas.getContext('2d');
+var gameType;
 var lastTick, dt;
 var doCountdown;
 var canvasWidth;
@@ -17,7 +20,10 @@ var vOffset;
 var hOffset;
 var scale;
 var scrollSpeed;
-var wallHeight;
+var wallHeight = 2800;
+var wallWidth = 1000;
+var player;
+var otherPlayer;
 var pause;
 var start;
 var wall;
@@ -30,22 +36,15 @@ var runningTime;
 var countDown;
 var gameOver;
 var gameWin;
+var waitingMsg;
 var climberBody;
-var robotSprites;
+var redRobotSprites;
+var greenRobotSprites;
 var drop;
 var climber;
 var Howl;
 
 function makeEven(n) { return n + n % 2; }
-
-function shuffle(o){
-  for(var j, x, i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
-  return o;
-}
-
-function randomBetween(min,max) {
-  return Math.floor(Math.random()*(max-min+1)+min);
-}
 
 function degToRad(d) {
   return (Math.PI/180) * d;
@@ -100,12 +99,6 @@ function dist(a, b) {
   return Math.sqrt(x*x + y*y);
 }
 
-function addHandHold(name, x, y, difficulty) {
-  if (difficulty) {
-    wall.push({name: name, x: x, y:y, difficulty: difficulty});
-  }
-}
-
 function drawWall() {
   // rock texture
   ctx.fillStyle = rockTexture;
@@ -154,18 +147,37 @@ function drawHandHold(handHold) {
 
 
 function buildWall() {
+
+  function shuffle(o){
+    for(var j, x, i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
+    return o;
+  }
+
+  var wall = [];
   var letters = [ 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
   var difficulties = [1, 1, 1, 0.6, 0.6, 0.4, 0, 0];
   var shuffledHandHoldNames = shuffle(letters);
-  wallHeight = canvasHeight * 4;
+  var wallHeight = 2800;
+  var wallWidth = 1200;
   var x;
   var y = 0;
   var i = 0;
   var xOffset;
   var yOffset;
+
+  function addHandHold(name, x, y, difficulty) {
+    if (difficulty) {
+      wall.push({name: name, x: x, y:y, difficulty: difficulty});
+    }
+  }
+
+  function randomBetween(min,max) {
+    return Math.floor(Math.random()*(max-min+1)+min);
+  }
+
   while (y < wallHeight + 100) {
     x = 30;
-    while (x < canvasWidth) {
+    while (x < wallWidth) {
       xOffset = randomBetween(-30, 30);
       yOffset = randomBetween(-60, 60);
       addHandHold(shuffledHandHoldNames[i], x + xOffset, y + yOffset, difficulties[randomBetween(0, difficulties.length - 1)]);
@@ -177,6 +189,7 @@ function buildWall() {
     }
     y += 160;
   }
+  return wall;
 }
 
 function drawHand(hand) {
@@ -242,11 +255,11 @@ function grab(hand, handHold) {
 
 function chooseHandHold(chosenHandHoldLetter) {
   // only proceed if the matching grip has been released
-  if (hands.filter(function(hand) { return hand.grip && hand.handHold.name === chosenHandHoldLetter; }).length) { return; }
+  if (hands[player-1].filter(function(hand) { return hand.grip && hand.handHold.name === chosenHandHoldLetter; }).length) { return; }
 
-  hands.filter(function(hand) { return !hand.grip; }).forEach(function(freeHand){
+  hands[player-1].filter(function(hand) { return !hand.grip; }).forEach(function(freeHand){
     if (!freeHand) { return; }
-    var otherHand = hands.filter(function(hand) { return hand !== freeHand; })[0];
+    var otherHand = hands[player-1].filter(function(hand) { return hand !== freeHand; })[0];
 
     function isValidHandHold(acc, handHold) {
       if (acc) { return acc; }
@@ -268,7 +281,7 @@ function chooseHandHold(chosenHandHoldLetter) {
 }
 
 function releaseHandHold(releasedLetter) {
-  hands.map(function(hand) {
+  hands[player-1].map(function(hand) {
     if(hand.start && hand.handHold.name && hand.handHold.name.toLowerCase() === releasedLetter) {
       hand.grip = 0;
       hand.released = true;
@@ -278,8 +291,8 @@ function releaseHandHold(releasedLetter) {
 }
 
 function checkGameOver() {
-  if (start && hands.filter(function(hand, i) {
-    return climberBody[i].start && dist(hand, climberBody[i]) > 1 ;
+  if (start && hands[player-1].filter(function(hand, i) {
+    return hand.start && dist(hand, climberBody[0][i].end) > 1 ;
   }).length == 2) {
     pause = true;
     gameOver = true;
@@ -300,7 +313,7 @@ function drawGameOver() {
 }
 
 function checkGameWin() {
-  if (climberBody.filter(function(hand, i) {  return hand.y < finishLine && dist(hand, hands[i]) < 1; }).length) {
+  if (climberBody[0].filter(function(arm, i) {  return arm.end.y < finishLine && dist(arm.end, hands[player-1][i]) < 1; }).length) {
     pause = true;
     gameWin = true;
   }
@@ -318,13 +331,30 @@ function drawGameWin() {
   ctx.fillText('Press "space" to play again', canvasWidth / 2 - 140, -40);
 }
 
+function drawWaitingMessage(msg) {
+  ctx.globalAlpha = 0.4;
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, wallHeight-220, canvasWidth, 150);
+  ctx.fillStyle = '#000';
+  ctx.globalAlpha = 1;
+  ctx.font = 'bold 42px arial';
+  ctx.fillText(msg, canvasWidth / 2 - (msg.length * 10), wallHeight-135);
+}
+
 function updateGrips(dt) {
-  hands.forEach(function(hand) {
+  function updateHand (hand) {
     if(hand.start && hand.grip) {
       var gripDuration = 15 * hand.handHold.difficulty;
       hand.grip = Math.max(0, Math.round((hand.grip - dt * 1 / 1000 / gripDuration) * 10000) / 10000);
     }
-  });
+  }
+
+  updateHand(hands[0][0]);
+  updateHand(hands[0][1]);
+  if (twoPlayerGame()) {
+    updateHand(hands[1][0]);
+    updateHand(hands[1][1]);
+  }
 }
 
 function drawCountdown() {
@@ -373,7 +403,7 @@ function drawHeightClimbed() {
   ctx.strokeStyle = '#000';
   ctx.lineWidth = 2;
   ctx.font = 'bold 25px arial';
-  var highestGrip = climberBody.reduce(function(a,b){ return Math.min(a.y, b.y); });
+  var highestGrip = climberBody[0].reduce(function(a,b){ return Math.min(a.end.y, b.end.y); });
   var climbedHeight = Math.max(Math.ceil((wallHeight - highestGrip) / 70), 0);
   var totalHeight = Math.floor(wallHeight / 70);
   var heightDisplay = climbedHeight + 'ft / ' + totalHeight + 'ft';
@@ -383,7 +413,7 @@ function drawHeightClimbed() {
 }
 
 function updateWorld(dt) {
-  if (doCountdown) {
+  if (!waitingMsg && doCountdown) {
     countDown += dt;
   } else {
     // dt jumps from 0 to however long the browser has been running, then down to 16
@@ -409,7 +439,7 @@ function updateWorld(dt) {
     updateGrips(dt);
 
 
-    var vOffsetTarget = hands.reduce(function(a,b){ return a.y + b.y; }) / 2;
+    var vOffsetTarget = hands[player-1].reduce(function(a,b){ return a.y + b.y; }) / 2;
     var maxScrollSpeed = 20;
     if (vOffset > vOffsetTarget) {
       scrollSpeed = Math.min(maxScrollSpeed, scrollSpeed + (dt * 20) / 1000);
@@ -418,7 +448,10 @@ function updateWorld(dt) {
     vOffset -= scrollSpeed;
   }
 
-  climber.update(hands[0], hands[1], dt);
+  climber.update(climberBody[0], hands[player-1], dt);
+  if (twoPlayerGame()) {
+    climber.update(climberBody[1], hands[otherPlayer-1], dt);
+  }
 
   if(gameWin) {
     var scaleFactor = canvasHeight * 0.8 / wallHeight;
@@ -438,8 +471,12 @@ function drawWorld() {
   ctx.translate(hOffset / scale, 0);
 
   drawWall();
-  hands.forEach(drawHand);
+  // hands[0].forEach(drawHand);
+  // hands[1].forEach(drawHand);
+  hands[player - 1].forEach(drawHand);
+
   if(gameWin) { drawGameWin(); }
+  if(waitingMsg) { drawWaitingMessage(waitingMsg); }
 
   ctx.globalAlpha = 1;
 
@@ -452,7 +489,14 @@ function drawWorld() {
       fadeOut('Servo');
     }
   }
-  climber.draw();
+
+  if (!waitingMsg) {
+    climber.draw(redRobotSprites, climberBody[0], hands[player-1]);
+    if(twoPlayerGame()) {
+      ctx.translate(0, -drop);
+      climber.draw(greenRobotSprites, climberBody[1], hands[otherPlayer-1]);
+    }
+  }
 
   ctx.restore();
 
@@ -474,15 +518,14 @@ function loop(time) {
 }
 
 function init() {
-  wall = [];
-  buildWall();
+  wall = gameType == 'onePlayer' ? buildWall() : [];
   finishLine = 75;
   scrollSpeed = 0;
   scale = 1;
-  hands = [{side: 'right', path: []}, {side: 'left', path: []}];
   keysDown = {};
   justPressed = null;
   justReleased = null;
+  climberBody = [];
   runningTime = 0;
   countDown = 0;
   gameOver = false;
@@ -491,16 +534,44 @@ function init() {
   doCountdown = false;
   pause = false;
   drop = 0;
+  hands = [
+    [{side: 'right', path: []}, {side: 'left', path: []}],
+    [{side: 'right', path: []}, {side: 'left', path: []}]
+  ];
+  if (gameType === 'onePlayer') {
+    climberBody[0] = initClimber(1, hands[0]);
+  } else {
+    if (player === 1) {
+      climberBody[0] = initClimber(1, hands[0]);
+      climberBody[1] = initClimber(2, hands[1]);
+    } else {
+      climberBody[0] = initClimber(1, hands[1]);
+      climberBody[1] = initClimber(2, hands[0]);
+    }
+  }
 
-  hands[0].x = canvasWidth / 2 - 100;
-  hands[0].y = wallHeight;
-  hands[1].x = canvasWidth / 2 + 100;
-  hands[1].y = wallHeight;
-  var vOffsetTarget = hands.reduce(function(a,b){ return a.y + b.y; }) / 2 - 100;
+  var vOffsetTarget = hands[0].reduce(function(a,b){ return a.y + b.y; }) / 2 - 100;
   vOffset = vOffsetTarget;
   hOffset = canvasWidth / 2;
+}
 
-  climberBody = climber.init(hands);
+function initClimber(i, hands) {
+  var offset;
+  if (twoPlayerGame()) {
+    offset = i == player
+      ? (canvasWidth * 1 / 5)
+      : (canvasWidth * 4 / 5);
+  } else {
+    offset = canvasWidth * 1 / 2;
+  }
+
+  hands[0].x = offset - 100;
+  hands[0].y = wallHeight;
+
+  hands[1].x = offset + 100;
+  hands[1].y = wallHeight;
+
+  return climber.init(hands);
 }
 
 // keep things sharp on retina screens
@@ -524,7 +595,8 @@ function enhanceContext(canvas, context) {
 // preload textures
 var imagesToLoad = [
   'assets/images/rocks.jpg',
-  'assets/images/robot-sprites.png'
+  'assets/images/robot-sprites-red.png',
+  'assets/images/robot-sprites-green.png'
 ];
 var soundsToLoad = [
   'Grab1',
@@ -583,7 +655,8 @@ function setSoundProp(name, prop, value) {
 function startGame() {
   main.style.background = 'initial';
   rockTexture = ctx.createPattern(loadedImages[0],'repeat');
-  robotSprites = loadedImages[1];
+  redRobotSprites = loadedImages[1];
+  greenRobotSprites = loadedImages[2];
 
   startScreen.style.display = 'none';
   title.style.display = 'none';
@@ -607,8 +680,65 @@ function loaded() {
   play('wind');
 }
 
+function twoPlayerGame () {
+  return  gameType === 'twoPlayer';
+}
+
+function showWaitingMsg(msg) {
+  waitingMsg = msg;
+}
+
 // bind start screen buttons
 onePlayerStartButton.onclick = function(e){
   e.preventDefault();
+  gameType = 'onePlayer';
+  player = 1;
+  showWaitingMsg(undefined);
   startGame();
 };
+
+twoPlayerStartButton.onclick = function(e){
+  e.preventDefault();
+  gameType = 'twoPlayer';
+  player = 1;
+  otherPlayer = 2;
+  showWaitingMsg('Preparing race...');
+  startGame();
+  //temp:
+  setTimeout(function(){
+    wall = buildWall();
+    showWaitingMsg(null);
+  }, 1000);
+  // send initiateRace socket message
+};
+// on raceCreated, raceCode socket message showWaitingMsg(roomCodeMsg)
+
+twoPlayerJoinButton.onclick = function(e){
+  e.preventDefault();
+  gameType = 'twoPlayer';
+  player = 2;
+  otherPlayer = 1;
+  showWaitingMsg('Preparing race...');
+  startGame();
+  //temp:
+  setTimeout(function(){
+    wall = buildWall();
+    showWaitingMsg(null);
+  }, 1000);
+  // send joinRace, raceCode socket message
+};
+// if joinRaceError socket message showWaitingMsg(raceCodeErrorMsg)
+
+// on startRace, wall socket message init(wall), clearWaitingMsg
+
+/*
+   initiateRace returns roomCreated message with roomNumber, display "waiting for other player to joing race xyz"
+   joinRace with a valid roomNumber triggers a startRace, displays "preparing race" or "race xyz doesn't exist"
+   startRace returns a wall, runs startGame() (and initializes the wall and two players)
+   losing or wining says you lose or you win, and sends a message raceOver with outcome which displays you lose or you win
+   restarting a finished race sends startRace (needs to reinitialize everything)
+
+  todo next:
+  - set up server
+  - handle gameover/restart two player
+ * */
