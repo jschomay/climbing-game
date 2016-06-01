@@ -2,6 +2,7 @@ var express = require('express');
 var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
+var buildWall = require('./buildwall');
 
 
 app.use(express.static('./'));
@@ -34,7 +35,7 @@ io.on('connection', function(socket){
       });
 
       socket.join(raceId);
-      io.to(raceId).emit('startRace', 'wall....');
+      io.to(raceId).emit('startRace', buildWall());
 
     } else {
       console.log('race not found', raceId);
