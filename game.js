@@ -1,3 +1,4 @@
+var socket = io();
 var onePlayerStartButton = document.getElementById('one-player-start');
 var twoPlayerStartButton = document.getElementById('two-player-start');
 var twoPlayerJoinButton = document.getElementById('two-player-join');
@@ -704,14 +705,8 @@ twoPlayerStartButton.onclick = function(e){
   otherPlayer = 2;
   showWaitingMsg('Preparing race...');
   startGame();
-  //temp:
-  setTimeout(function(){
-    wall = buildWall();
-    showWaitingMsg(null);
-  }, 1000);
-  // send initiateRace socket message
+  socket.emit('initiateRace');
 };
-// on raceCreated, raceCode socket message showWaitingMsg(roomCodeMsg)
 
 twoPlayerJoinButton.onclick = function(e){
   e.preventDefault();
@@ -719,26 +714,38 @@ twoPlayerJoinButton.onclick = function(e){
   player = 2;
   otherPlayer = 1;
   showWaitingMsg('Preparing race...');
+  var raceId = window.prompt('Enter race to join:');
   startGame();
-  //temp:
-  setTimeout(function(){
-    wall = buildWall();
-    showWaitingMsg(null);
-  }, 1000);
-  // send joinRace, raceCode socket message
+  socket.emit('joinRace', raceId.toUpperCase());
 };
-// if joinRaceError socket message showWaitingMsg(raceCodeErrorMsg)
 
-// on startRace, wall socket message init(wall), clearWaitingMsg
 
 /*
-   initiateRace returns roomCreated message with roomNumber, display "waiting for other player to joing race xyz"
-   joinRace with a valid roomNumber triggers a startRace, displays "preparing race" or "race xyz doesn't exist"
-   startRace returns a wall, runs startGame() (and initializes the wall and two players)
    losing or wining says you lose or you win, and sends a message raceOver with outcome which displays you lose or you win
    restarting a finished race sends startRace (needs to reinitialize everything)
 
   todo next:
-  - set up server
+  - generate wall on server
+  - send climb messages
   - handle gameover/restart two player
  * */
+
+socket.on('raceCreated', function(raceId) {
+  showWaitingMsg('Waiting for other player to join race "' + raceId + '"');
+});
+
+socket.on('raceLeft', function() {
+  showWaitingMsg('Race over, the other player left.');
+});
+
+socket.on('joinRaceError', function(raceId) {
+  alert('Could not find race "' + raceId + '".  Please try again.');
+  window.location.href = window.location.href;
+});
+
+socket.on('startRace', function(wallForRace) {
+  showWaitingMsg(null);
+  alert('race started' + wallForRace)
+  // wall = wallForRace
+});
+
