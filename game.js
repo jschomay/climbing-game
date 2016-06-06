@@ -12,6 +12,7 @@ canvas.width = 1200;
 canvas.height = 700;
 var ctx = canvas.getContext('2d');
 var gameType;
+var raceId;
 var lastTick, dt;
 var doCountdown;
 var canvasWidth;
@@ -148,29 +149,30 @@ function drawHandHold(handHold) {
 
 
 
-function drawHand(hand) {
+function drawHand(leftColor, rightColor, hand) {
   if(!hand.start){ return; }
   var r = 45;
   var handBias = hand.side == 'right' ? 3 : -3;
 
   ctx.save();
-  ctx.strokeStyle = hand.side == 'right' ? 'red' : 'blue';
+  ctx.strokeStyle = hand.side == 'right' ? rightColor : leftColor;
 
-  // climbing path
-  ctx.save();
-  ctx.beginPath();
-  ctx.lineWidth = 8;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.setLineDash([19,19]);
-  ctx.globalAlpha = 0.5;
-  ctx.moveTo(hand.path[0].x, hand.path[0].y);
-  hand.path.slice(1).forEach(function(p) {
-    ctx.lineTo(p.x + 10 + handBias, p.y - 10);
-  });
-  ctx.stroke();
-  ctx.closePath();
-  ctx.restore();
+  if(hand.path.length) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.lineWidth = 8;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.setLineDash([19,19]);
+    ctx.globalAlpha = 0.5;
+    ctx.moveTo(hand.path[0].x, hand.path[0].y);
+    hand.path.slice(1).forEach(function(p) {
+      ctx.lineTo(p.x + 10 + handBias, p.y - 10);
+    });
+    ctx.stroke();
+    ctx.closePath();
+    ctx.restore();
+  }
 
   if (hand.grip) {
     // active hold
@@ -232,13 +234,16 @@ function chooseHandHold(chosenHandHoldLetter) {
     if (handHold) {
       freeHand.start = true;
       grab(freeHand, handHold);
+      if(twoPlayerGame()) {
+        socket.emit('updatePlayer',  raceId, 'grab', {hand: freeHand, handHold: handHold});
+      }
     }
   });
 }
 
-function releaseHandHold(releasedLetter) {
-  hands[player-1].map(function(hand) {
-    if(hand.start && hand.handHold.name && hand.handHold.name.toLowerCase() === releasedLetter) {
+function releaseHandHold(hands, releasedLetter) {
+  hands.map(function(hand) {
+    if(hand.start && hand.handHold && hand.handHold.name && hand.handHold.name.toLowerCase() === releasedLetter) {
       hand.grip = 0;
       hand.released = true;
       play('Servo');
@@ -388,7 +393,10 @@ function updateWorld(dt) {
       justPressed = null;
     }
     if(justReleased) {
-      releaseHandHold(justReleased);
+      releaseHandHold(hands[player-1], justReleased);
+      if(twoPlayerGame()) {
+        socket.emit('updatePlayer',  raceId, 'release', {releasedLetter: justReleased});
+      }
       justReleased = null;
     }
 
@@ -427,9 +435,12 @@ function drawWorld() {
   ctx.translate(hOffset / scale, 0);
 
   drawWall();
-  // hands[0].forEach(drawHand);
-  // hands[1].forEach(drawHand);
-  hands[player - 1].forEach(drawHand);
+  var handColors = player === 1 ? ['blue', 'red'] : ['green', 'yellow'];
+  hands[player - 1].forEach(drawHand.bind(null, handColors[0], handColors[1]));
+  if(twoPlayerGame()) {
+    handColors = player === 1 ? ['green', 'yellow'] : ['blue', 'red'];
+    hands[otherPlayer-1].forEach(drawHand.bind(null, handColors[0], handColors[1]));
+  }
 
   if(gameWin) { drawGameWin(); }
   if(waitingMsg) { drawWaitingMessage(waitingMsg); }
@@ -447,10 +458,10 @@ function drawWorld() {
   }
 
   if (!waitingMsg) {
-    climber.draw(redRobotSprites, climberBody[0], hands[player-1]);
+    climber.draw(player === 1 ? redRobotSprites : greenRobotSprites, climberBody[0], hands[player-1]);
     if(twoPlayerGame()) {
       ctx.translate(0, -drop);
-      climber.draw(greenRobotSprites, climberBody[1], hands[otherPlayer-1]);
+      climber.draw(player === 1 ? greenRobotSprites : redRobotSprites, climberBody[1], hands[otherPlayer-1]);
     }
   }
 
@@ -669,7 +680,7 @@ twoPlayerJoinButton.onclick = function(e){
   player = 2;
   otherPlayer = 1;
   showWaitingMsg('Preparing race...');
-  var raceId = window.prompt('Enter race to join:');
+  raceId = window.prompt('Enter race to join:');
   startGame();
   socket.emit('joinRace', raceId.toUpperCase());
 };
@@ -680,11 +691,11 @@ twoPlayerJoinButton.onclick = function(e){
    restarting a finished race sends startRace (needs to reinitialize everything)
 
   todo next:
-  - send climb messages
   - handle gameover/restart two player
  * */
 
-socket.on('raceCreated', function(raceId) {
+socket.on('raceCreated', function(generatedRaceId) {
+  raceId = generatedRaceId;
   showWaitingMsg('Waiting for other player to join race "' + raceId + '"');
 });
 
@@ -698,7 +709,21 @@ socket.on('joinRaceError', function(raceId) {
 });
 
 socket.on('startRace', function(wallForRace) {
+  hands[otherPlayer-1].forEach(function(hand){ hand.start = true; });
   showWaitingMsg(null);
   wall = wallForRace;
+});
+
+socket.on('updatePlayer', function(event, eventData) {
+  switch(event) {
+  case 'grab':
+    var hand = hands[otherPlayer-1].filter(function(otherPlayersHand) { return otherPlayersHand.side === eventData.hand.side; })[0];
+    grab(hand, eventData.handHold);
+    break;
+
+  case 'release':
+    releaseHandHold(hands[otherPlayer-1], eventData.releasedLetter);
+    break;
+  }
 });
 

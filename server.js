@@ -42,6 +42,10 @@ io.on('connection', function(socket){
       socket.emit('joinRaceError', raceId);
     }
   });
+
+  socket.on('updatePlayer', (raceId, event, eventData) => {
+    socket.broadcast.to(raceId.toUpperCase()).emit('updatePlayer', event, eventData);
+  });
 });
 
 http.listen(3000, function(){
