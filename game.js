@@ -36,8 +36,10 @@ var justPressed;
 var justReleased;
 var runningTime;
 var countDown;
-var gameOver;
+var gameLose;
+var otherPlayerLose;
 var gameWin;
+var gameOver;
 var waitingMsg;
 var climberBody;
 var redRobotSprites;
@@ -73,7 +75,7 @@ function wrapText(text, x, y, maxWidth, lineHeight) {
 }
 
 function handleKeyDown(e) {
-  if((gameOver || gameWin) && e.keyCode === 32) {
+  if((gameLose || gameWin) && e.keyCode === 32) {
     init();
     return;
   }
@@ -251,17 +253,21 @@ function releaseHandHold(hands, releasedLetter) {
   });
 }
 
-function checkGameOver() {
+function checkGameLose() {
   if (start && hands[player-1].filter(function(hand, i) {
     return hand.start && dist(hand, climberBody[0][i].end) > 1 ;
   }).length == 2) {
     pause = true;
+    gameLose = true;
     gameOver = true;
     play('fallingrock');
+    if(twoPlayerGame()){
+      socket.emit('lose', raceId.toUpperCase());
+    }
   }
 }
 
-function drawGameOver() {
+function drawGameLose() {
   ctx.globalAlpha = 0.4;
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, canvasHeight / 2 - 70, canvasWidth, 150);
@@ -270,36 +276,45 @@ function drawGameOver() {
   ctx.globalAlpha = 1;
   ctx.fillText('Game Over!', canvasWidth / 2 - 200, canvasHeight / 2 + 10);
   ctx.font = 'bold 22px arial';
-  ctx.fillText('Press "space" to play again', canvasWidth / 2 - 120, canvasHeight / 2 + 50);
+  ctx.fillText('Press "space bar" to play again', canvasWidth / 2 - 160, canvasHeight / 2 + 50);
 }
 
 function checkGameWin() {
   if (climberBody[0].filter(function(arm, i) {  return arm.end.y < finishLine && dist(arm.end, hands[player-1][i]) < 1; }).length) {
     pause = true;
     gameWin = true;
+    gameOver = true;
+    if(twoPlayerGame()){
+      socket.emit('win', raceId.toUpperCase());
+    }
   }
 }
 
 function drawGameWin() {
   ctx.globalAlpha = 0.4;
   ctx.fillStyle = '#fff';
-  ctx.fillRect(0, -160, canvasWidth, 150);
+  ctx.fillRect(0, canvasHeight / 2 - 70, canvasWidth, 150);
   ctx.fillStyle = '#000';
   ctx.globalAlpha = 1;
   ctx.font = 'bold 72px arial';
-  ctx.fillText('You Win!', canvasWidth / 2 - 160, -80);
+  ctx.fillText('You Win!', canvasWidth / 2 - 160, canvasHeight / 2 + 10);
   ctx.font = 'bold 22px arial';
-  ctx.fillText('Press "space" to play again', canvasWidth / 2 - 140, -40);
+  ctx.fillText('Press "space bar" to play again', canvasWidth / 2 - 160, canvasHeight / 2 + 50);
 }
 
 function drawWaitingMessage(msg) {
   ctx.globalAlpha = 0.4;
   ctx.fillStyle = '#fff';
-  ctx.fillRect(0, wallHeight-220, canvasWidth, 150);
+  ctx.fillRect(0, canvasHeight / 2 - 70, canvasWidth, 150);
   ctx.fillStyle = '#000';
   ctx.globalAlpha = 1;
   ctx.font = 'bold 42px arial';
-  ctx.fillText(msg, canvasWidth / 2 - (msg.length * 10), wallHeight-135);
+  ctx.fillText(msg, canvasWidth / 2 - (msg.length * 10), canvasHeight / 2 + 10);
+
+  if(gameOver) {
+    ctx.font = 'bold 22px arial';
+    ctx.fillText('Press "space bar" to race again', canvasWidth / 2 - 160, canvasHeight / 2 + 50);
+  }
 }
 
 function updateGrips(dt) {
@@ -386,7 +401,7 @@ function updateWorld(dt) {
     runningTime += dt;
 
     checkGameWin();
-    checkGameOver();
+    checkGameLose();
 
     if(justPressed) {
       chooseHandHold(justPressed);
@@ -402,7 +417,6 @@ function updateWorld(dt) {
 
     updateGrips(dt);
 
-
     var vOffsetTarget = hands[player-1].reduce(function(a,b){ return a.y + b.y; }) / 2;
     var maxScrollSpeed = 20;
     if (vOffset > vOffsetTarget) {
@@ -417,10 +431,10 @@ function updateWorld(dt) {
     climber.update(climberBody[1], hands[otherPlayer-1], dt);
   }
 
-  if(gameWin) {
-    var scaleFactor = canvasHeight * 0.8 / wallHeight;
-    vOffset = Math.max(100, vOffset - dt * 10 / 1000);
-    scale = Math.max(scaleFactor, scale - dt * 0.1 / 1000);
+  if(gameOver) {
+    var scaleFactor = canvasHeight * 0.9 / wallHeight;
+    vOffset = Math.max(100, vOffset - dt / 5);
+    scale = Math.max(scaleFactor, scale - dt * 1 / 15000);
   }
 
 }
@@ -442,12 +456,9 @@ function drawWorld() {
     hands[otherPlayer-1].forEach(drawHand.bind(null, handColors[0], handColors[1]));
   }
 
-  if(gameWin) { drawGameWin(); }
-  if(waitingMsg) { drawWaitingMessage(waitingMsg); }
-
   ctx.globalAlpha = 1;
 
-  if(gameOver) {
+  function animateDrop() {
     drop += 10;
     ctx.translate(0, drop);
     if(drop < 200) {
@@ -457,23 +468,29 @@ function drawWorld() {
     }
   }
 
-  if (!waitingMsg) {
+  if(!waitingMsg || gameOver) {
+    if(gameLose) { animateDrop(); }
     climber.draw(player === 1 ? redRobotSprites : greenRobotSprites, climberBody[0], hands[player-1]);
+
     if(twoPlayerGame()) {
-      ctx.translate(0, -drop);
+      if(otherPlayerLose) {
+        animateDrop();
+      } else {
+        ctx.translate(0, -drop);
+      }
       climber.draw(player === 1 ? greenRobotSprites : redRobotSprites, climberBody[1], hands[otherPlayer-1]);
     }
   }
-
   ctx.restore();
 
   // outside of global transform
   drawTime();
   drawCountdown();
   drawHeightClimbed();
-  if(gameOver) {
-    drawGameOver();
-  }
+  if(gameLose) { drawGameLose(); }
+  if(gameWin) { drawGameWin(); }
+  if(waitingMsg) { drawWaitingMessage(waitingMsg); }
+
 }
 
 function loop(time) {
@@ -495,8 +512,10 @@ function init() {
   climberBody = [];
   runningTime = 0;
   countDown = 0;
-  gameOver = false;
+  gameLose = false;
+  otherPlayerLose = false;
   gameWin = false;
+  gameOver = false;
   start = false;
   doCountdown = false;
   pause = false;
@@ -691,7 +710,9 @@ twoPlayerJoinButton.onclick = function(e){
    restarting a finished race sends startRace (needs to reinitialize everything)
 
   todo next:
-  - handle gameover/restart two player
+  - handle restart two player
+  - indicate player's color at start
+  - score of races won per color
  * */
 
 socket.on('raceCreated', function(generatedRaceId) {
@@ -725,5 +746,18 @@ socket.on('updatePlayer', function(event, eventData) {
     releaseHandHold(hands[otherPlayer-1], eventData.releasedLetter);
     break;
   }
+});
+
+socket.on('lose', function() {
+  pause = true;
+  gameOver = true;
+  showWaitingMsg((player === 2 ? 'RED' : 'GREEN') + ' reached the finish line first!');
+});
+
+socket.on('win', function() {
+  otherPlayerLose = true;
+  pause = true;
+  gameOver = true;
+  showWaitingMsg((player === 2 ? 'RED' : 'GREEN') + ' fell, you win!');
 });
 

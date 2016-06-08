@@ -46,6 +46,14 @@ io.on('connection', function(socket){
   socket.on('updatePlayer', (raceId, event, eventData) => {
     socket.broadcast.to(raceId.toUpperCase()).emit('updatePlayer', event, eventData);
   });
+
+  socket.on('lose', (raceId) => {
+    socket.broadcast.to(raceId.toUpperCase()).emit('win');
+  });
+
+  socket.on('win', (raceId) => {
+    socket.broadcast.to(raceId.toUpperCase()).emit('lose');
+  });
 });
 
 http.listen(3000, function(){
