@@ -75,8 +75,13 @@ function wrapText(text, x, y, maxWidth, lineHeight) {
 }
 
 function handleKeyDown(e) {
-  if((gameLose || gameWin) && e.keyCode === 32) {
-    init();
+  if((gameOver) && e.keyCode === 32) {
+    if(twoPlayerGame()) {
+      showWaitingMsg('Preparing next race...');
+      socket.emit('raceAgain', raceId.toUpperCase());
+    } else {
+      init();
+    }
     return;
   }
 
@@ -706,11 +711,7 @@ twoPlayerJoinButton.onclick = function(e){
 
 
 /*
-   losing or wining says you lose or you win, and sends a message raceOver with outcome which displays you lose or you win
-   restarting a finished race sends startRace (needs to reinitialize everything)
-
   todo next:
-  - handle restart two player
   - indicate player's color at start
   - score of races won per color
  * */
@@ -730,6 +731,13 @@ socket.on('joinRaceError', function(raceId) {
 });
 
 socket.on('startRace', function(wallForRace) {
+  hands[otherPlayer-1].forEach(function(hand){ hand.start = true; });
+  showWaitingMsg(null);
+  wall = wallForRace;
+});
+
+socket.on('restartRace', function(wallForRace) {
+  init();
   hands[otherPlayer-1].forEach(function(hand){ hand.start = true; });
   showWaitingMsg(null);
   wall = wallForRace;

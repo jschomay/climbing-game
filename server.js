@@ -54,6 +54,10 @@ io.on('connection', function(socket){
   socket.on('win', (raceId) => {
     socket.broadcast.to(raceId.toUpperCase()).emit('lose');
   });
+
+  socket.on('raceAgain', (raceId) => {
+    io.to(raceId.toUpperCase()).emit('restartRace', buildWall());
+  });
 });
 
 http.listen(3000, function(){
