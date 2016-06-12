@@ -281,7 +281,7 @@ function drawGameLose() {
   ctx.globalAlpha = 1;
   ctx.fillText('Game Over!', canvasWidth / 2 - 200, canvasHeight / 2 + 10);
   ctx.font = 'bold 22px arial';
-  ctx.fillText('Press "space bar" to play again', canvasWidth / 2 - 160, canvasHeight / 2 + 50);
+  ctx.fillText('Press "space bar" to ' + (twoPlayerGame() ? 'race again' : 'play again'), canvasWidth / 2 - 160, canvasHeight / 2 + 50);
 }
 
 function checkGameWin() {
@@ -304,7 +304,7 @@ function drawGameWin() {
   ctx.font = 'bold 72px arial';
   ctx.fillText('You Win!', canvasWidth / 2 - 160, canvasHeight / 2 + 10);
   ctx.font = 'bold 22px arial';
-  ctx.fillText('Press "space bar" to play again', canvasWidth / 2 - 160, canvasHeight / 2 + 50);
+  ctx.fillText('Press "space bar" to ' + (twoPlayerGame() ? 'race again' : 'play again'), canvasWidth / 2 - 160, canvasHeight / 2 + 50);
 }
 
 function drawWaitingMessage(msg) {
