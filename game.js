@@ -222,6 +222,13 @@ function chooseHandHold(chosenHandHoldLetter) {
   // only proceed if the matching grip has been released
   if (hands[player-1].filter(function(hand) { return hand.grip && hand.handHold.name === chosenHandHoldLetter; }).length) { return; }
 
+  function otherPlayersHold(handHold) {
+    return hands[otherPlayer-1].filter(function(hand) {
+      return hand.grip && (hand.handHold.x === handHold.x && hand.handHold.y === handHold.y);
+    }).length;
+  };
+
+
   hands[player-1].filter(function(hand) { return !hand.grip; }).forEach(function(freeHand){
     if (!freeHand) { return; }
     var otherHand = hands[player-1].filter(function(hand) { return hand !== freeHand; })[0];
@@ -239,6 +246,7 @@ function chooseHandHold(chosenHandHoldLetter) {
 
     var handHold = wall.reduce(isValidHandHold, null);
     if (handHold) {
+      if(twoPlayerGame() && otherPlayersHold(handHold)) { return; }
       freeHand.start = true;
       grab(freeHand, handHold);
       if(twoPlayerGame()) {
