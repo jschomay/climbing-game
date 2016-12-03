@@ -226,7 +226,7 @@ function chooseHandHold(chosenHandHoldLetter) {
     return hands[otherPlayer-1].filter(function(hand) {
       return hand.grip && (hand.handHold.x === handHold.x && hand.handHold.y === handHold.y);
     }).length;
-  };
+  }
 
 
   hands[player-1].filter(function(hand) { return !hand.grip; }).forEach(function(freeHand){
@@ -674,7 +674,7 @@ function loaded() {
 
   setSoundProp('Target', 'volume', 0.3);
   setSoundProp('wind', 'loop', true);
-  setSoundProp('wind', 'volume', 0.6);
+  setSoundProp('wind', 'volume', 0.4);
 
   play('wind');
 }
